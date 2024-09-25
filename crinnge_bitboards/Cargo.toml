@@ -1,0 +1,8 @@
+[package]
+name = "crinnge_bitboards"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "crinnge_bitboards"
+path = "src/lib.rs"

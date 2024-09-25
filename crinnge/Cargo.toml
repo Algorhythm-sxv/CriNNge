@@ -1,0 +1,7 @@
+[package]
+name = "crinnge"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crinnge_lib = { path = "../crinnge_lib" }

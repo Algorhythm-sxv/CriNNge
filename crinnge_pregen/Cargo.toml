@@ -1,0 +1,14 @@
+[package]
+name = "crinnge_pregen"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "crinnge_pregen"
+path = "src/lib.rs"
+
+[dependencies]
+crinnge_bitboards = { path = "../crinnge_bitboards" }
+
+[build-dependencies]
+crinnge_bitboards = { path = "../crinnge_bitboards" }

@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = ["crinnge_bitboards", "crinnge_pregen", "crinnge_lib", "crinnge"]
+
+
+[profile.test]
+debug = true
+lto = true
+
+[profile.release]
+lto = true
+
+[profile.production]
+inherits = "release"
+lto = true
+codegen-units = 1
+strip = "symbols"
