@@ -45,22 +45,22 @@ fn main() {
 fn generate_lmr_reductions() -> [[i8; 64]; 64] {
     let mut reductions = [[0; 64]; 64];
 
-    for depth in 1..64 {
+    (1..64).for_each(|depth| {
         for played in 1..64 {
             reductions[depth][played] =
                 (1.2232 + (depth as f32).ln() * (played as f32).ln() / 1.9965) as i8;
         }
-    }
+    });
     reductions
 }
 
 fn generate_lmp_margins() -> [[usize; 2]; 32] {
     let mut reductions = [[0; 2]; 32];
 
-    for depth in 1..32 {
+    (1..32).for_each(|depth| {
         reductions[depth][0] = (2.5 + 0.625 * (depth as f32).powi(2)) as usize;
         reductions[depth][1] = (4.22 + 1.414 * (depth as f32).powi(2)) as usize;
-    }
+    });
     reductions
 }
 

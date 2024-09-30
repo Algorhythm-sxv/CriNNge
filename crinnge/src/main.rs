@@ -6,7 +6,6 @@ use crinnge_lib::{
     board::Board,
     moves::MoveList,
     nnue::{Accumulator, NNUE},
-    Color,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
