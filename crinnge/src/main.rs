@@ -2,7 +2,12 @@ mod uci;
 
 use std::{error::Error, io::stdin, time::Instant};
 
-use crinnge_lib::{board::Board, moves::MoveList};
+use crinnge_lib::{
+    board::Board,
+    moves::MoveList,
+    nnue::{Accumulator, NNUE},
+    Color,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut board = Board::new();
@@ -26,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 for mv in moves {
                     test_board.generate_moves_into(&mut board_moves);
                     if let Some(mv) = board_moves.slice().iter().find(|m| m.coords() == mv) {
-                        if !test_board.make_move(*mv) {
+                        if !test_board.make_move_only(*mv) {
                             eprintln!("info string Illegal move: {}", mv.coords());
                         }
                     } else {
@@ -35,8 +40,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
                 board = test_board;
             }
+            uci::UciCommand::Fen => {
+                println!("info string {}", board.fen());
+            }
             uci::UciCommand::Perft { depth } => {
                 perft(&board, depth);
+            }
+            uci::UciCommand::Eval => {
+                let mut accs = [Accumulator::new(); 2];
+                board.refresh_accumulators(&mut accs);
+                let eval = NNUE.evaluate(&accs[0]);
+                let neval = NNUE.evaluate(&accs[1]);
+                println!("info string white eval: {eval}");
+                println!("info string black eval: {neval}");
+            }
+            uci::UciCommand::Quit => {
+                break;
             }
         }
     }
@@ -56,7 +75,7 @@ fn perft(board: &Board, depth: usize) {
 
     for mv in moves.slice() {
         let mut next = *board;
-        if next.make_move(*mv) {
+        if next.make_move_only(*mv) {
             let subcount = _perft(&next, depth - 1);
             count += subcount;
             println!("{}: {}", mv.coords(), subcount)
@@ -79,10 +98,10 @@ fn _perft(board: &Board, depth: usize) -> usize {
 
     for mv in moves.slice() {
         let mut next = *board;
-        if next.make_move(*mv) {
+        if next.make_move_only(*mv) {
             count += _perft(&next, depth - 1)
         }
     }
 
-    return count;
+    count
 }

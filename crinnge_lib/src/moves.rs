@@ -106,6 +106,12 @@ impl MoveList {
     }
 }
 
+impl Default for MoveList {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crinnge_bitboards::Square;

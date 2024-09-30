@@ -328,6 +328,10 @@ impl Square {
         let rank = coord.chars().nth(1).unwrap().to_digit(10).unwrap() as u8 - 1;
         Self(rank * 8 + file)
     }
+
+    pub fn flip(&self) -> Square {
+        Square(self.0 ^ 56)
+    }
 }
 
 impl Deref for Square {

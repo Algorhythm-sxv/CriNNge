@@ -5,7 +5,7 @@ pub mod utils;
 
 use crinnge_bitboards::*;
 
-use crate::{moves::*, types::*};
+use crate::{moves::*, nnue::*, thread_data::ThreadData, types::*};
 
 #[derive(Copy, Clone, Debug)]
 pub struct Board {
@@ -98,7 +98,33 @@ impl Board {
         // TODO: zobrist hashing
     }
 
-    pub fn make_move(&mut self, mv: Move) -> bool {
+    pub fn make_move_nnue(&mut self, mv: Move, t: &mut ThreadData, ply: usize) -> bool {
+        let mut updates = MoveUpdates::new();
+        if !self._make_move(mv, &mut updates) {
+            return false;
+        }
+        let (accs, rest) = t.accumulators.split_at_mut(ply + 1);
+        let before = accs.last_mut().unwrap();
+        let after = rest.first_mut().unwrap();
+        before[0].apply(&mut after[0], updates);
+        before[1].apply(&mut after[1], updates);
+
+        debug_assert!({
+            let test_white = Accumulator::new();
+            let test_black = Accumulator::new();
+            self.refresh_accumulators(&mut [test_white, test_black]);
+
+            [test_white, test_black] == t.accumulators[ply + 1]
+        });
+
+        true
+    }
+
+    pub fn make_move_only(&mut self, mv: Move) -> bool {
+        self._make_move(mv, &mut MoveUpdates::new())
+    }
+
+    fn _make_move(&mut self, mv: Move, updates: &mut MoveUpdates) -> bool {
         let from = mv.from();
         let to = mv.to();
         let player = self.player;
@@ -113,15 +139,19 @@ impl Board {
 
         // move the piece normally and remove the normally captured piece
         if !mv.is_castling() {
+            updates.sub(player, piece, from);
             if let Some(promo) = mv.promo() {
                 self.xor_piece(player, Pawn, from);
                 self.xor_piece(player, promo, to);
+                updates.add(player, promo, to);
             } else {
                 self.move_piece(player, piece, from, to);
+                updates.add(player, piece, to);
             }
 
             if let Some(capture) = capture {
                 self.xor_piece(!player, capture, to);
+                updates.sub(!player, capture, to);
             }
         }
 
@@ -131,6 +161,7 @@ impl Board {
             let target = self.ep_mask.ishift(if player == White { -8 } else { 8 });
             self.pawns[!player] ^= target;
             self.occupied[!player] ^= target;
+            updates.sub(!player, Pawn, target.first_square());
             // TODO: zobrist hashing
         } else if mv.is_castling() {
             // find the destination square
@@ -143,7 +174,11 @@ impl Board {
 
             // move the king and rook
             self.move_piece(player, King, from, dest.0);
+            updates.sub(player, King, from);
+            updates.add(player, King, dest.0);
             self.move_piece(player, Rook, to, dest.1);
+            updates.sub(player, Rook, to);
+            updates.add(player, Rook, dest.1);
         }
 
         // double pawn push
@@ -186,5 +221,30 @@ impl Board {
         }
 
         true
+    }
+
+    pub fn refresh_accumulators(&self, accs: &mut [Accumulator; 2]) {
+        let mut white = Accumulator::new();
+        let mut black = Accumulator::new();
+
+        for color in [White, Black] {
+            for piece in [Pawn, Knight, Bishop, Rook, Queen, King] {
+                let pieces = self.pieces(piece)[color];
+                for square in pieces {
+                    // white-relative accumulator
+                    white.feature_add_in_place(color == White, piece, square);
+                    // black-relative accumulator
+                    black.feature_add_in_place(color == Black, piece, square.flip());
+                }
+            }
+        }
+
+        *accs = [white, black]
+    }
+}
+
+impl Default for Board {
+    fn default() -> Self {
+        Self::new()
     }
 }

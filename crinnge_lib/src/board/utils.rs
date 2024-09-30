@@ -92,4 +92,34 @@ impl Board {
             Some(King)
         }
     }
+
+    pub fn contents(&self) -> ([[BitBoard; 2]; 7], Color) {
+        (
+            [
+                self.pawns,
+                self.knights,
+                self.bishops,
+                self.rooks,
+                self.queens,
+                self.kings,
+                self.occupied,
+            ],
+            self.player,
+        )
+    }
+
+    pub fn pieces(&self, piece: Piece) -> [BitBoard; 2] {
+        match piece {
+            Pawn => self.pawns,
+            Knight => self.knights,
+            Bishop => self.bishops,
+            Rook => self.rooks,
+            Queen => self.queens,
+            King => self.kings,
+        }
+    }
+
+    pub fn player(&self) -> Color {
+        self.player
+    }
 }

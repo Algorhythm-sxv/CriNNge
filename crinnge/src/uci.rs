@@ -5,9 +5,12 @@ pub enum UciCommand {
         start_fen: Option<String>,
         moves: Vec<String>,
     },
+    Fen,
     Perft {
         depth: usize,
     },
+    Eval,
+    Quit,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -23,9 +26,12 @@ pub enum UciError {
 pub fn parse(command: String) -> Result<UciCommand, UciError> {
     let parts: Vec<_> = command.split(' ').collect();
 
-    match *parts.get(0).ok_or(UciError::EmptyCommand)? {
+    match *parts.first().ok_or(UciError::EmptyCommand)? {
         "position" => parse_position_command(&parts),
+        "fen" => Ok(UciCommand::Fen),
         "perft" => parse_perft_command(&parts),
+        "eval" => Ok(UciCommand::Eval),
+        "quit" => Ok(UciCommand::Quit),
         _ => Err(UciError::UnknownCommand),
     }
 }
@@ -36,7 +42,7 @@ pub fn parse_position_command(parts: &[&str]) -> Result<UciCommand, UciError> {
         "fen" => {
             let fen_parts = parts.get(2..=7).ok_or(UciError::IncompleteCommand)?;
             let fen = fen_parts.join(" ");
-            if let Some(_) = Board::from_fen(&fen) {
+            if Board::from_fen(&fen).is_some() {
                 Some(fen)
             } else {
                 Err(UciError::InvalidFen)?
@@ -70,3 +76,4 @@ fn parse_perft_command(parts: &[&str]) -> Result<UciCommand, UciError> {
 
     Ok(UciCommand::Perft { depth })
 }
+

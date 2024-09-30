@@ -11,7 +11,7 @@ impl Board {
 
         let mut rank: u32 = 7;
         let mut file: u32 = 0;
-        for chr in parts.get(0)?.chars() {
+        for chr in parts.first()?.chars() {
             let pieces = match chr.to_ascii_lowercase() {
                 'p' => &mut board.pawns,
                 'n' => &mut board.knights,
@@ -191,6 +191,6 @@ mod tests {
     fn test_fen_equality() {
         let fen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
         let board = Board::from_fen(fen).unwrap();
-        assert!(fen == &board.fen());
+        assert!(fen == board.fen());
     }
 }
