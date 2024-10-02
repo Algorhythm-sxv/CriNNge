@@ -162,7 +162,7 @@ pub use self::consts::*;
 fn generate_knight_table() -> [BitBoard; 64] {
     let mut table = [BitBoard::empty(); 64];
 
-    for square in 0..64 {
+    (0..64).for_each(|square| {
         let knight: BitBoard = BitBoard(1 << square);
 
         let moves = ((knight << 6) & NOT_G_H_FILES)
@@ -175,7 +175,7 @@ fn generate_knight_table() -> [BitBoard; 64] {
             | ((knight >> 17) & NOT_H_FILE);
 
         table[square] = moves;
-    }
+    });
     table
 }
 
@@ -183,7 +183,7 @@ fn generate_knight_table() -> [BitBoard; 64] {
 fn generate_king_table() -> [BitBoard; 64] {
     let mut table = [BitBoard::empty(); 64];
 
-    for square in 0..64 {
+    (0..64).for_each(|square| {
         let mut king = BitBoard(1 << square);
 
         let mut moves = ((king << 1) & NOT_A_FILE) | ((king >> 1) & NOT_H_FILE);
@@ -193,7 +193,7 @@ fn generate_king_table() -> [BitBoard; 64] {
         moves |= (king << 8) | (king >> 8);
 
         table[square] = moves;
-    }
+    });
 
     table
 }
@@ -235,9 +235,9 @@ pub struct MagicSquare {
 fn generate_rook_magics(attack_table: &mut [BitBoard], index: &mut usize) -> [MagicSquare; 64] {
     let mut rook_magic = [MagicSquare::default(); 64];
 
-    for square in 0..64 {
+    (0..64).for_each(|square| {
         rook_magic[square] = find_magic(square, false, attack_table, index).unwrap();
-    }
+    });
     rook_magic
 }
 
@@ -245,9 +245,9 @@ fn generate_rook_magics(attack_table: &mut [BitBoard], index: &mut usize) -> [Ma
 fn generate_bishop_magics(attack_table: &mut [BitBoard], index: &mut usize) -> [MagicSquare; 64] {
     let mut bishop_magic = [MagicSquare::default(); 64];
 
-    for square in 0..64 {
+    (0..64).for_each(|square| {
         bishop_magic[square] = find_magic(square, true, attack_table, index).unwrap();
-    }
+    });
     bishop_magic
 }
 
