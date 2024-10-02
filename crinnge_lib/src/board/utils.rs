@@ -122,4 +122,37 @@ impl Board {
     pub fn player(&self) -> Color {
         self.player
     }
+
+    pub fn recalculate_hash(&self) -> u64 {
+        let mut hash = 0;
+
+        for color in [White, Black] {
+            for piece in [Pawn, Knight, Bishop, Rook, Queen, King] {
+                let pieces = self.pieces(piece);
+                for square in pieces[color] {
+                    hash ^= zobrist_piece(color, piece, square);
+                }
+            }
+        }
+
+        hash ^= zobrist_ep(self.ep_mask);
+        hash ^= zobrist_castling(self.castles);
+        if self.player == Black {
+            hash ^= zobrist_player();
+        }
+
+        hash
+    }
+
+    pub fn recalculate_pawn_hash(&self) -> u64 {
+        let mut hash = 0;
+
+        for color in [White, Black] {
+            for square in self.pawns[color] {
+                hash ^= zobrist_piece(color, Pawn, square);
+            }
+        }
+
+        hash
+    }
 }

@@ -101,6 +101,9 @@ impl Board {
             1
         };
 
+        board.hash = board.recalculate_hash();
+        board.pawn_hash = board.recalculate_pawn_hash();
+
         Some(board)
     }
 

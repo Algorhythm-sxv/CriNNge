@@ -5,6 +5,7 @@ pub mod utils;
 
 use crinnge_bitboards::*;
 use feature::Feature;
+use lookups::*;
 
 use crate::{moves::*, nnue::*, thread_data::ThreadData, types::*};
 
@@ -22,36 +23,13 @@ pub struct Board {
     ep_mask: BitBoard,
     halfmove_clock: u8,
     fullmove_count: u16,
+    hash: u64,
+    pawn_hash: u64,
 }
 
 impl Board {
     pub fn new() -> Self {
-        Self {
-            pawns: [SECOND_RANK, SEVENTH_RANK],
-            knights: [
-                Square::B1.bitboard() | Square::G1.bitboard(),
-                Square::B8.bitboard() | Square::G8.bitboard(),
-            ],
-            bishops: [
-                Square::C1.bitboard() | Square::F1.bitboard(),
-                Square::C8.bitboard() | Square::F8.bitboard(),
-            ],
-            rooks: [
-                Square::A1.bitboard() | Square::H1.bitboard(),
-                Square::A8.bitboard() | Square::H8.bitboard(),
-            ],
-            queens: [Square::D1.bitboard(), Square::D8.bitboard()],
-            kings: [Square::E1.bitboard(), Square::E8.bitboard()],
-            occupied: [FIRST_RANK | SECOND_RANK, SEVENTH_RANK | EIGHTH_RANK],
-            castles: [
-                [Square::A1.bitboard(), Square::H1.bitboard()],
-                [Square::A8.bitboard(), Square::H8.bitboard()],
-            ],
-            player: Color::White,
-            ep_mask: BitBoard::empty(),
-            halfmove_clock: 0,
-            fullmove_count: 1,
-        }
+        Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
 
     pub fn empty() -> Self {
@@ -68,6 +46,8 @@ impl Board {
             ep_mask: BitBoard::empty(),
             halfmove_clock: 0,
             fullmove_count: 1,
+            hash: 0,
+            pawn_hash: 0,
         }
     }
 
@@ -82,7 +62,7 @@ impl Board {
         };
         *pieces ^= from.bitboard() | to.bitboard();
         self.occupied[color] ^= from.bitboard() | to.bitboard();
-        // TODO: zobrist hashing
+        self.hash ^= zobrist_piece(color, piece, from) ^ zobrist_piece(color, piece, to);
     }
 
     pub fn xor_piece(&mut self, color: Color, piece: Piece, on: Square) {
@@ -96,7 +76,7 @@ impl Board {
         };
         *pieces ^= on.bitboard();
         self.occupied[color] ^= on.bitboard();
-        // TODO: zobrist hashing
+        self.hash ^= zobrist_piece(color, piece, on);
     }
 
     pub fn make_move_nnue(&mut self, mv: Move, t: &mut ThreadData, ply: usize) -> bool {
@@ -152,6 +132,9 @@ impl Board {
             if let Some(capture) = capture {
                 self.xor_piece(!player, capture, to);
                 updates.sub(!player, capture, to);
+                if capture == Pawn {
+                    self.pawn_hash ^= zobrist_piece(!player, Pawn, to);
+                }
             }
         }
 
@@ -162,7 +145,8 @@ impl Board {
             self.pawns[!player] ^= target;
             self.occupied[!player] ^= target;
             updates.sub(!player, Pawn, target.first_square());
-            // TODO: zobrist hashing
+            self.hash ^= zobrist_piece(!player, Pawn, target.first_square());
+            self.pawn_hash ^= zobrist_piece(!player, Pawn, target.first_square());
         } else if mv.is_castling() {
             // find the destination square
             const DESTS: [[(Square, Square); 2]; 2] = [
@@ -181,19 +165,31 @@ impl Board {
             updates.add(player, Rook, dest.1);
         }
 
+        // update pawn hash for pawn moves
+        if piece == Pawn {
+            self.pawn_hash ^= zobrist_piece(player, Pawn, from);
+            self.pawn_hash ^= zobrist_piece(player, Pawn, to);
+        }
+
+        // clear ep from pawn hash
+        self.hash ^= zobrist_ep(self.ep_mask);
+
         // double pawn push
         if piece == Pawn && from.abs_diff(*to) == 16 {
             let ep_square = to.offset(0, if player == White { -1 } else { 1 });
             self.ep_mask = ep_square.bitboard();
-            // TODO: zobrist hashing
         } else {
             // clear ep for all other moves
             self.ep_mask = BitBoard::empty();
-            // TODO: zobrist hashing
         }
 
+        // re-add new ep hash
+        self.hash ^= zobrist_ep(self.ep_mask);
+
+        // clear current castling rights
+        self.hash ^= zobrist_castling(self.castles);
+
         // update castling rights
-        // TODO: zobrist hashing
         if piece == King {
             self.castles[player] = [BitBoard::empty(); 2];
         }
@@ -207,18 +203,25 @@ impl Board {
             self.castles[!player][1] = BitBoard::empty()
         }
 
+        // hash new castling rights
+        self.hash ^= zobrist_castling(self.castles);
+
         self.halfmove_clock += 1;
         if player == Black {
             self.fullmove_count += 1;
         }
         self.player = !self.player;
-        // TODO: zobrist hashing
+        self.hash ^= zobrist_player();
 
         // check if king is attacked
         let attacks = self.all_attacks(!player);
         if (self.kings[player] & attacks).is_not_empty() {
             return false;
         }
+
+        debug_assert!({
+            self.hash == self.recalculate_hash() && self.pawn_hash == self.recalculate_pawn_hash()
+        });
 
         true
     }
