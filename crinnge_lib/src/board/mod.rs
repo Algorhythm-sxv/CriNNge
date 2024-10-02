@@ -4,6 +4,7 @@ pub mod movegen;
 pub mod utils;
 
 use crinnge_bitboards::*;
+use feature::Feature;
 
 use crate::{moves::*, nnue::*, thread_data::ThreadData, types::*};
 
@@ -103,18 +104,17 @@ impl Board {
         if !self._make_move(mv, &mut updates) {
             return false;
         }
-        let (accs, rest) = t.accumulators.split_at_mut(ply + 1);
-        let before = accs.last_mut().unwrap();
-        let after = rest.first_mut().unwrap();
-        before[0].apply(&mut after[0], updates);
-        before[1].apply(&mut after[1], updates);
+        let (front, back) = t.accumulators.split_at_mut(ply + 1);
+        let before = front.last_mut().unwrap();
+        let after = back.first_mut().unwrap();
+
+        before.apply_into(after, updates);
 
         debug_assert!({
-            let test_white = Accumulator::new();
-            let test_black = Accumulator::new();
-            self.refresh_accumulators(&mut [test_white, test_black]);
+            let mut test = Accumulator::new();
+            self.refresh_accumulator(&mut test);
 
-            [test_white, test_black] == t.accumulators[ply + 1]
+            test == t.accumulators[ply + 1]
         });
 
         true
@@ -223,23 +223,38 @@ impl Board {
         true
     }
 
-    pub fn refresh_accumulators(&self, accs: &mut [Accumulator; 2]) {
-        let mut white = Accumulator::new();
-        let mut black = Accumulator::new();
+    pub fn refresh_accumulator(&self, acc: &mut Accumulator) {
+        let mut new = Accumulator::new();
 
         for color in [White, Black] {
             for piece in [Pawn, Knight, Bishop, Rook, Queen, King] {
                 let pieces = self.pieces(piece)[color];
                 for square in pieces {
                     // white-relative accumulator
-                    white.feature_add_in_place(color == White, piece, square);
+                    add_in_place(
+                        &mut new.white,
+                        Feature {
+                            color,
+                            piece,
+                            square,
+                        }
+                        .index(White),
+                    );
                     // black-relative accumulator
-                    black.feature_add_in_place(color == Black, piece, square.flip());
+                    add_in_place(
+                        &mut new.black,
+                        Feature {
+                            color,
+                            piece,
+                            square,
+                        }
+                        .index(Black),
+                    );
                 }
             }
         }
 
-        *accs = [white, black]
+        *acc = new
     }
 }
 

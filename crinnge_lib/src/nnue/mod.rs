@@ -3,6 +3,7 @@ const EVAL_SCALE: i32 = 400;
 const QA: i32 = 255;
 const QB: i32 = 64;
 
+pub mod feature;
 pub mod accumulator;
 pub mod network;
 

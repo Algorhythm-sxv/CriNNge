@@ -51,10 +51,12 @@ pub fn parse_position_command(parts: &[&str]) -> Result<UciCommand, UciError> {
         _ => Err(UciError::InvalidPositionCommand)?,
     };
 
-    let moves = match parts.get(8) {
+    let moves_start = if start_fen.is_some() {8} else {2};
+
+    let moves = match parts.get(moves_start) {
         Some(&"moves") => {
             let mut moves = Vec::new();
-            if let Some(mvs) = parts.get(9..) {
+            if let Some(mvs) = parts.get((moves_start+1)..) {
                 for mv in mvs {
                     moves.push(mv.to_string());
                 }

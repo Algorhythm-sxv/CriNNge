@@ -5,7 +5,7 @@ use std::{error::Error, io::stdin, time::Instant};
 use crinnge_lib::{
     board::Board,
     moves::MoveList,
-    nnue::{Accumulator, NNUE},
+    nnue::{Accumulator, NNUE}, thread_data::ThreadData,
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -27,10 +27,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Board::new()
                 };
                 let mut board_moves = MoveList::new();
-                for mv in moves {
+                let mut t = ThreadData::new();
+                test_board.refresh_accumulator(&mut t.accumulators[0]);
+                for (i, mv) in moves.iter().enumerate() {
                     test_board.generate_moves_into(&mut board_moves);
-                    if let Some(mv) = board_moves.slice().iter().find(|m| m.coords() == mv) {
-                        if !test_board.make_move_only(*mv) {
+                    if let Some(mv) = board_moves.slice().iter().find(|m| m.coords() == *mv) {
+                        if !test_board.make_move_nnue(*mv, &mut t, i) {
                             eprintln!("info string Illegal move: {}", mv.coords());
                         }
                     } else {
@@ -46,12 +48,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                 perft(&board, depth);
             }
             uci::UciCommand::Eval => {
-                let mut accs = [Accumulator::new(); 2];
-                board.refresh_accumulators(&mut accs);
-                let eval = NNUE.evaluate(&accs[0]);
-                let neval = NNUE.evaluate(&accs[1]);
-                println!("info string white eval: {eval}");
-                println!("info string black eval: {neval}");
+                let mut acc = Accumulator::new();
+                board.refresh_accumulator(&mut acc);
+                let weval = NNUE.evaluate(&acc.white);
+                let beval = NNUE.evaluate(&acc.black);
+                println!("info string white eval: {weval}");
+                println!("info string black eval: {beval}");
             }
             uci::UciCommand::Quit => {
                 break;

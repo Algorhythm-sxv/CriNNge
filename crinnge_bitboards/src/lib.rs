@@ -189,7 +189,7 @@ mod consts {
 }
 pub use self::consts::*;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Square(u8);
 
 impl Square {
