@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 test_board.refresh_accumulator(&mut t.accumulators[0]);
                 for (i, mv) in moves.iter().enumerate() {
                     test_board.generate_moves_into(&mut board_moves);
-                    if let Some(mv) = board_moves.slice().iter().find(|m| m.coords() == *mv) {
+                    if let Some(mv) = board_moves.iter_moves().iter().find(|m| m.coords() == *mv) {
                         if !test_board.make_move_nnue(*mv, &mut t, i) {
                             eprintln!("info string Illegal move: {}", mv.coords());
                         }
@@ -74,7 +74,7 @@ fn perft(board: &Board, depth: usize) {
 
     board.generate_moves_into(&mut moves);
 
-    for mv in moves.slice() {
+    for mv in moves.iter_moves() {
         let mut next = *board;
         if next.make_move_only(*mv) {
             let subcount = _perft(&next, depth - 1);
@@ -97,7 +97,7 @@ fn _perft(board: &Board, depth: usize) -> usize {
 
     board.generate_moves_into(&mut moves);
 
-    for mv in moves.slice() {
+    for mv in moves.iter_moves() {
         let mut next = *board;
         if next.make_move_only(*mv) {
             count += _perft(&next, depth - 1)

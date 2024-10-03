@@ -136,4 +136,18 @@ impl Board {
             }
         }
     }
+
+    pub fn legal_moves(&self) -> Vec<Move> {
+        let mut moves = MoveList::new();
+        self.generate_moves_into(&mut moves);
+
+        let mut legals = Vec::new();
+        for mv in moves.iter_moves() {
+            if self.clone().make_move_only(*mv) {
+                legals.push(*mv)
+            }
+        }
+
+        legals
+    }
 }

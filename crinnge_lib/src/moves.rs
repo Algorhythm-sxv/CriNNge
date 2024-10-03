@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use crate::types::*;
 use crinnge_bitboards::*;
 
@@ -80,35 +82,87 @@ impl Move {
     }
 }
 
+#[derive(Copy, Clone, Debug, Default)]
+pub struct MoveListEntry {
+    pub mv: Move,
+    pub score: i32,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct MoveList {
-    moves: [Move; 218],
-    len: u8,
+    moves: [MoveListEntry; 218],
+    len: usize,
 }
 
 impl MoveList {
     pub fn new() -> Self {
         Self {
-            moves: [Move::NULL; 218],
+            moves: [MoveListEntry::default(); 218],
             len: 0,
         }
     }
+
     pub fn push(&mut self, mv: Move) {
-        self.moves[self.len as usize] = mv;
+        self.moves[self.len] = MoveListEntry { mv, score: 0 };
         self.len += 1;
     }
-    pub fn slice(&self) -> &[Move] {
-        &self.moves[..self.len as usize]
+
+    pub fn iter_moves(&self) -> impl Iterator<Item = &Move> {
+        self.moves[..self.len].iter().map(|e| &e.mv)
     }
-    
+
     pub fn clear(&mut self) {
         self.len = 0;
+    }
+}
+
+impl Deref for MoveList {
+    type Target = [MoveListEntry];
+
+    fn deref(&self) -> &Self::Target {
+        &self.moves[..self.len]
+    }
+}
+
+impl DerefMut for MoveList {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.moves[..self.len]
     }
 }
 
 impl Default for MoveList {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct PrincipalVariation {
+    moves: [Move; 218],
+    len: usize,
+}
+
+impl PrincipalVariation {
+    pub fn new() -> Self {
+        Self {
+            moves: [Move::NULL; 218],
+            len: 0,
+        }
+    }
+
+    pub fn update_with(&mut self, mv: Move, rest: &Self) {
+        self.moves[0] = mv;
+
+        let new_len = rest.len + 1;
+        self.moves[1..new_len].copy_from_slice(&rest.moves[..rest.len]);
+    }
+}
+
+impl Deref for PrincipalVariation {
+    type Target = [Move];
+
+    fn deref(&self) -> &Self::Target {
+        &self.moves[..self.len]
     }
 }
 
