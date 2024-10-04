@@ -245,15 +245,15 @@ impl Board {
             return randomize_draw_score(info);
         }
 
-        let mut moves = MoveList::new();
-        self.generate_moves_into(&mut moves);
+        let [mut noisy, mut quiet] = [MoveList::new();2];
+        self.generate_moves_into(&mut noisy, &mut quiet);
 
         let old_alpha = alpha;
         let mut best_score = -INF;
         let mut _best_move = None;
         let mut moves_made = 0;
 
-        for &mv in moves.iter_moves() {
+        for &mv in noisy.iter_moves().chain(quiet.iter_moves()) {
             let mut new = *self;
 
             if !new.make_move_nnue(mv, t, ply) {
@@ -302,6 +302,39 @@ impl Board {
 
         best_score
     }
+
+    // fn quiesce<R: NodeType, M: ThreadType>(
+    //     &self,
+    //     pv: &mut PrincipalVariation,
+    //     info: &mut SearchInfo,
+    //     t: &mut ThreadData,
+    //     mut alpha: i32,
+    //     beta: i32,
+    //     ply: usize,
+    // ) -> i32 {
+    //     // check time and node aborts every 1024 nodes on the main thread
+    //     if M::MAIN_THREAD
+    //         && info.inc_nodes()
+    //         && (info
+    //             .time_manager
+    //             .node_limit_reached(info.global_node_count())
+    //             || info.time_manager.hard_time_limit_reached())
+    //     {
+    //         info.stop();
+    //         return -INF;
+    //     }
+
+    //     // check for aborted search
+    //     if info.stopped::<M>() {
+    //         pv.clear();
+    //         return 0;
+    //     }
+
+    //     // check for searching too deep
+    //     if ply >= MAX_DEPTH as usize - 1 {
+    //         return self.evaluate(t, ply);
+    //     }
+    // }
 }
 
 fn randomize_draw_score(info: &SearchInfo) -> i32 {

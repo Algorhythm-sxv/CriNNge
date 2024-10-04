@@ -163,11 +163,11 @@ fn perft(board: &Board, depth: usize) {
 
     let start = Instant::now();
     let mut count = 0usize;
-    let mut moves = MoveList::new();
+    let [mut noisy, mut quiet] = [MoveList::new(); 2];
 
-    board.generate_moves_into(&mut moves);
+    board.generate_moves_into(&mut noisy, &mut quiet);
 
-    for mv in moves.iter_moves() {
+    for mv in noisy.iter_moves().chain(quiet.iter_moves()) {
         let mut next = *board;
         if next.make_move_only(*mv) {
             let subcount = _perft(&next, depth - 1);
@@ -186,11 +186,11 @@ fn _perft(board: &Board, depth: usize) -> usize {
         return 1;
     }
     let mut count = 0usize;
-    let mut moves = MoveList::new();
+    let [mut noisy, mut quiet] = [MoveList::new(); 2];
 
-    board.generate_moves_into(&mut moves);
+    board.generate_moves_into(&mut noisy, &mut quiet);
 
-    for mv in moves.iter_moves() {
+    for mv in noisy.iter_moves().chain(quiet.iter_moves()) {
         let mut next = *board;
         if next.make_move_only(*mv) {
             count += _perft(&next, depth - 1)

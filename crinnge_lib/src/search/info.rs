@@ -7,7 +7,12 @@ use std::{
     time::Instant,
 };
 
-use crate::{moves::PrincipalVariation, thread_data::ThreadData, timeman::TimeManager};
+use crate::{
+    moves::PrincipalVariation,
+    search::{MATE_SCORE, MAX_DEPTH},
+    thread_data::ThreadData,
+    timeman::TimeManager,
+};
 
 use super::{options::SearchOptions, ScoreType, ThreadType};
 
@@ -121,9 +126,20 @@ impl<'a> SearchInfo<'a> {
             let nodes = self.global_node_count();
             let elapsed = self.time_manager.elapsed().as_millis() as u64;
             let nps = nodes * 1_000 / elapsed.max(1);
+
+            let mate_plies = MATE_SCORE - t.root_score.abs();
+            let score_string = if mate_plies <= MAX_DEPTH {
+                format!(
+                    "mate {}{}",
+                    if t.root_score > 0 { "" } else { "-" },
+                    (mate_plies + 1) / 2
+                )
+            } else {
+                format!("cp {}", t.root_score)
+            };
             println!(
                 "info depth {} seldepth {} score {} nodes {} nps {} hashfull {} time {} pv {}",
-                depth, self.seldepth, t.root_score, nodes, nps, 0, elapsed, t.pv
+                depth, self.seldepth, score_string, nodes, nps, 0, elapsed, t.pv
             );
         }
     }
@@ -140,6 +156,17 @@ impl<'a> SearchInfo<'a> {
             let elapsed = self.time_manager.elapsed().as_millis() as u64;
             let nps = nodes * 1_000 / elapsed.max(1);
 
+            let mate_plies = MATE_SCORE - score.abs();
+            let score_string = if mate_plies <= MAX_DEPTH {
+                format!(
+                    "mate {}{}",
+                    if score > 0 { "" } else { "-" },
+                    (mate_plies + 1) / 2
+                )
+            } else {
+                format!("cp {}", score)
+            };
+
             let score_bound = match score_type {
                 ScoreType::Exact => "",
                 ScoreType::LowerBound => " lowerbound",
@@ -147,7 +174,7 @@ impl<'a> SearchInfo<'a> {
             };
             println!(
                 "info depth {} seldepth {} score {}{} nodes {} nps {} hashfull {} time {} pv {}",
-                depth, self.seldepth, score, score_bound, nodes, nps, 0, elapsed, prev_pv
+                depth, self.seldepth, score_string, score_bound, nodes, nps, 0, elapsed, prev_pv
             );
         }
     }

@@ -93,6 +93,10 @@ impl Board {
         }
     }
 
+    pub fn enemy_on(&self, sq: Square) -> bool {
+        (self.occupied[!self.player] & sq.bitboard()).is_not_empty()
+    }
+
     pub fn contents(&self) -> ([[BitBoard; 2]; 7], Color) {
         (
             [
