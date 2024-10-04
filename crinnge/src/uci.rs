@@ -185,6 +185,7 @@ pub fn print_uci_message() {
     println!("id name CriNNge {}", VERSION);
     println!("id author Algorhythm");
     // TODO: option strings
+    println!("uciok");
 }
 
 pub fn stdin_reader() -> Receiver<String> {
