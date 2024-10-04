@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let nodes = info.global_node_count();
         let elapsed = time_manager.elapsed().as_millis() as u64;
         println!(
-            "Nodes: {} NPS: {}",
+            "{} Nodes {} NPS",
             info.global_node_count(),
             nodes * 1000 / elapsed
         );
