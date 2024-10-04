@@ -123,6 +123,14 @@ impl Board {
         self.player
     }
 
+    pub fn halfmove_clock(&self) -> u8 {
+        self.halfmove_clock
+    }
+
+    pub fn in_check(&self) -> bool {
+        (self.all_attacks(!self.player) & self.kings[self.player]).is_not_empty()
+    }
+
     pub fn recalculate_hash(&self) -> u64 {
         let mut hash = 0;
 

@@ -3,11 +3,11 @@ use std::time::{Duration, Instant};
 #[derive(Copy, Clone, Debug)]
 pub struct TimeOptions {
     /// the maximum percent of the total remaining time to use
-    hard_time_percent: i64,
+    pub hard_time_percent: i64,
     /// the fraction of time to finish after the current depth
-    soft_time_percent: i64,
+    pub soft_time_percent: i64,
     /// what percent of the increment to consider part of the time remaining
-    inc_percent: i64,
+    pub inc_percent: i64,
 }
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -16,7 +16,7 @@ pub struct TimeData {
     pub ntm_time: i64,
     pub stm_inc: i64,
     pub ntm_inc: i64,
-    pub movestogo: Option<i64>,
+    pub movestogo: Option<usize>,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -25,7 +25,7 @@ pub struct TimeManager {
     time_data: TimeData,
     hard_time: Option<Duration>,
     soft_time: Option<Duration>,
-    depth_limit: Option<i32>,
+    depth_limit: Option<usize>,
     node_limit: Option<u64>,
 }
 
@@ -42,6 +42,7 @@ impl TimeManager {
     }
 
     pub fn time_limited(mut self, data: TimeData, options: TimeOptions) -> Self {
+        self.time_data = data;
         self.hard_time = Some(Duration::from_millis(
             ((data.stm_time * options.hard_time_percent + data.stm_inc * options.inc_percent) / 100)
                 .max(data.stm_time / 10) // never use more than 90% of clock time, guard for low-time high-increment situations
@@ -53,41 +54,86 @@ impl TimeManager {
                 .max(0) as u64,
         ));
 
-        self
-    }
-
-    pub fn fixed_time_millis(mut self, millis: i64) -> Self {
-        self.hard_time = Some(Duration::from_millis(millis as u64));
-        self.soft_time = self.hard_time;
-
-        self
-    }
-
-    pub fn fixed_depth(mut self, depth: i32) -> Self {
-        self.depth_limit = Some(depth);
+        if let Some(movestogo) = data.movestogo {
+            self.soft_time = Some(Duration::from_millis(
+                (data.stm_time / movestogo as i64).max(0) as u64,
+            ));
+        }
 
         self
     }
 
-    pub fn fixed_nodes(mut self, nodes: u64) -> Self {
-        self.node_limit = Some(nodes);
+    pub fn fixed_time_millis(mut self, millis: Option<i64>) -> Self {
+        if let Some(millis) = millis {
+            self.hard_time = Some(Duration::from_millis(millis as u64));
+            self.soft_time = None;
+        }
 
         self
     }
 
-    pub fn hard_time(&self) -> Option<Duration> {
-        self.hard_time
+    pub fn infinite(mut self, infinite: bool) -> Self {
+        if infinite {
+            self.hard_time = None;
+            self.soft_time = None;
+        }
+
+        self
     }
 
-    pub fn soft_time(&self) -> Option<Duration> {
-        self.soft_time
+    pub fn fixed_depth(mut self, depth: Option<usize>) -> Self {
+        self.depth_limit = depth;
+        if depth.is_some() {
+            self.soft_time = None;
+            self.hard_time = None;
+        }
+
+        self
     }
 
-    pub fn depth_limit(&self) -> Option<i32> {
-        self.depth_limit
+    pub fn fixed_nodes(mut self, nodes: Option<u64>) -> Self {
+        self.node_limit = nodes;
+        if nodes.is_some() {
+            self.soft_time = None;
+            self.hard_time = None;
+        }
+
+        self
     }
 
-    pub fn node_limit(&self) -> Option<u64> {
-        self.node_limit
+    pub fn elapsed(&self) -> Duration {
+        self.start_time.elapsed()
+    }
+
+    pub fn depth_limit_reached(&self, depth: i32) -> bool {
+        if let Some(limit) = self.depth_limit {
+            depth >= limit as i32
+        } else {
+            false
+        }
+    }
+
+    pub fn node_limit_reached(&self, nodes: u64) -> bool {
+        if let Some(limit) = self.node_limit {
+            nodes >= limit
+        } else {
+            false
+        }
+    }
+
+    pub fn soft_time_limit_reached(&self) -> bool {
+        if let Some(limit) = self.soft_time {
+            self.elapsed() >= limit
+        } else {
+            false
+        }
+    }
+
+    pub fn hard_time_limit_reached(&self) -> bool {
+        if let Some(limit) = self.hard_time {
+            self.elapsed() >= limit
+        } else {
+            false
+        }
     }
 }

@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut, Not};
+use std::ops::{Div, Index, IndexMut, Not};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum Color {
@@ -73,3 +73,59 @@ impl<T, const N: usize> IndexMut<Piece> for [T; N] {
 }
 
 pub use Piece::*;
+
+use crate::search::INF;
+
+#[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
+pub enum ScoreType {
+    #[default]
+    Exact,
+    LowerBound,
+    UpperBound,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct AspirationWindow {
+    pub lower: i32,
+    pub upper: i32,
+}
+
+impl AspirationWindow {
+    pub fn new(upper: i32, lower: i32) -> Self {
+        Self { upper, lower }
+    }
+    pub fn new_around(mid: i32, width: i32) -> Self {
+        Self {
+            lower: mid.saturating_sub(width / 2).max(-INF),
+            upper: mid.saturating_add(width / 2).min(INF),
+        }
+    }
+    pub fn expand_down(&mut self, scale_percent: i32) {
+        let mid = (self.upper + self.lower) / 2;
+        let diff = (mid - self.lower).abs();
+        self.lower = mid - diff.saturating_mul(scale_percent).div(100).max(-INF);
+    }
+    pub fn expand_up(&mut self, scale_percent: i32) {
+        let mid = (self.upper + self.lower) / 2;
+        let diff = (mid - self.upper).abs();
+        self.upper = mid + diff.saturating_mul(scale_percent).div(100).max(-INF);
+    }
+    pub fn test(&self, score: i32) -> ScoreType {
+        if score <= self.lower {
+            ScoreType::UpperBound
+        } else if score >= self.upper {
+            ScoreType::LowerBound
+        } else {
+            ScoreType::Exact
+        }
+    }
+}
+
+impl Default for AspirationWindow {
+    fn default() -> Self {
+        Self {
+            lower: -INF,
+            upper: INF,
+        }
+    }
+}

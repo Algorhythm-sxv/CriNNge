@@ -2,6 +2,7 @@ pub mod fen;
 pub mod lookups;
 pub mod movegen;
 pub mod utils;
+pub mod evaluation;
 
 use crinnge_bitboards::*;
 use feature::Feature;

@@ -11,13 +11,13 @@ pub struct Network {
 }
 
 impl Network {
-    pub fn evaluate(&self, acc: &Aligned) -> i16 {
+    pub fn evaluate(&self, acc: &Aligned) -> i32 {
         let mut output = self.output_bias as i32;
         for (&n, &ow) in acc.iter().zip(self.output_weights.iter()) {
             output += crelu(n) * i32::from(ow)
         }
 
-        (output * EVAL_SCALE / (QA * QB)) as i16
+        output * EVAL_SCALE / (QA * QB)
     }
 }
 

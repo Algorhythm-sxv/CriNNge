@@ -1,4 +1,7 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    fmt::Display,
+    ops::{Deref, DerefMut},
+};
 
 use crate::types::*;
 use crinnge_bitboards::*;
@@ -11,7 +14,7 @@ const EP_FLAG: u16 = 0b0100_0000_0000_0000;
 pub struct Move(pub u16);
 
 impl Move {
-    const NULL: Self = Self(0);
+    pub const NULL: Self = Self(0);
     pub fn new(from: Square, to: Square, promo: Option<Piece>) -> Self {
         let mut inner = *from as u16;
         inner |= (*to as u16) << 6;
@@ -155,6 +158,17 @@ impl PrincipalVariation {
 
         let new_len = rest.len + 1;
         self.moves[1..new_len].copy_from_slice(&rest.moves[..rest.len]);
+        self.len = new_len;
+    }
+
+    pub fn clear(&mut self) {
+        self.len = 0
+    }
+}
+
+impl Default for PrincipalVariation {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -163,6 +177,19 @@ impl Deref for PrincipalVariation {
 
     fn deref(&self) -> &Self::Target {
         &self.moves[..self.len]
+    }
+}
+
+impl Display for PrincipalVariation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.iter()
+                .map(|m| m.coords())
+                .collect::<Vec<_>>()
+                .join(" ")
+        )
     }
 }
 
