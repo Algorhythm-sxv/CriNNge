@@ -1,6 +1,7 @@
 mod uci;
 
 use std::{
+    env,
     error::Error,
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
@@ -29,6 +30,28 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut board = Board::new();
     let mut search_options = SearchOptions::default();
     let mut threads_data = vec![ThreadData::new(&board); search_options.threads];
+
+    if env::args().nth(1) == Some("bench".to_string()) {
+        let start_time = Instant::now();
+        let time_manager = TimeManager::new(start_time).fixed_depth(Some(7));
+        let node_counter = AtomicU64::new(0);
+        let stop_signal = AtomicBool::new(false);
+        let mut info = SearchInfo::new(&stop_signal, &node_counter)
+            .time_manager(time_manager)
+            .stdout(false);
+
+        board.search(&mut info, &mut threads_data);
+
+        let nodes = info.global_node_count();
+        let elapsed = time_manager.elapsed().as_millis() as u64;
+        println!(
+            "Nodes: {} NPS: {}",
+            info.global_node_count(),
+            nodes * 1000 / elapsed
+        );
+
+        return Ok(());
+    }
 
     let stdin_rx = Mutex::new(stdin_reader());
     'command: loop {
