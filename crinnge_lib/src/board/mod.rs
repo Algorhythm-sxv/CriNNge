@@ -1,8 +1,8 @@
+pub mod evaluation;
 pub mod fen;
 pub mod lookups;
 pub mod movegen;
 pub mod utils;
-pub mod evaluation;
 
 use crinnge_bitboards::*;
 use feature::Feature;
@@ -198,7 +198,8 @@ impl Board {
             self.castles[player][0] = BitBoard::empty()
         } else if (from.bitboard() & self.castles[player][1]).is_not_empty() {
             self.castles[player][1] = BitBoard::empty()
-        } else if (to.bitboard() & self.castles[!player][0]).is_not_empty() {
+        }
+        if (to.bitboard() & self.castles[!player][0]).is_not_empty() {
             self.castles[!player][0] = BitBoard::empty();
         } else if (to.bitboard() & self.castles[!player][1]).is_not_empty() {
             self.castles[!player][1] = BitBoard::empty()

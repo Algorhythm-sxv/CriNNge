@@ -142,7 +142,7 @@ impl Board {
         const KING_TARGETS: [[Square; 2]; 2] = [[Square::C1, Square::C8], [Square::G1, Square::G8]];
         for (i, castle) in castles.iter().enumerate() {
             if castle.is_not_empty() {
-                let rook_from = castles[i].first_square();
+                let rook_from = castle.first_square();
                 // clear between rook and king
                 if (lookup_between(from, rook_from) & self.all_pieces()).is_empty() {
                     let target = KING_TARGETS[i][self.player];
