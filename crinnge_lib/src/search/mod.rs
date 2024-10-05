@@ -202,10 +202,8 @@ impl Board {
         depth: i32,
         ply: usize,
     ) -> i32 {
-
         if depth <= 0 {
-            // TODO: qsearch
-            let score = self.evaluate(t, ply);
+            let score = self.quiesce::<M>(pv, info, t, alpha, beta, ply);
             return score;
         }
 
@@ -245,7 +243,7 @@ impl Board {
             return randomize_draw_score(info);
         }
 
-        let [mut noisy, mut quiet] = [MoveList::new();2];
+        let [mut noisy, mut quiet] = [MoveList::new(); 2];
         self.generate_moves_into(&mut noisy, &mut quiet);
 
         let old_alpha = alpha;
@@ -303,38 +301,115 @@ impl Board {
         best_score
     }
 
-    // fn quiesce<R: NodeType, M: ThreadType>(
-    //     &self,
-    //     pv: &mut PrincipalVariation,
-    //     info: &mut SearchInfo,
-    //     t: &mut ThreadData,
-    //     mut alpha: i32,
-    //     beta: i32,
-    //     ply: usize,
-    // ) -> i32 {
-    //     // check time and node aborts every 1024 nodes on the main thread
-    //     if M::MAIN_THREAD
-    //         && info.inc_nodes()
-    //         && (info
-    //             .time_manager
-    //             .node_limit_reached(info.global_node_count())
-    //             || info.time_manager.hard_time_limit_reached())
-    //     {
-    //         info.stop();
-    //         return -INF;
-    //     }
+    fn quiesce<M: ThreadType>(
+        &self,
+        pv: &mut PrincipalVariation,
+        info: &mut SearchInfo,
+        t: &mut ThreadData,
+        mut alpha: i32,
+        beta: i32,
+        ply: usize,
+    ) -> i32 {
+        // check time and node aborts every 1024 nodes on the main thread
+        if M::MAIN_THREAD
+            && info.inc_nodes()
+            && (info
+                .time_manager
+                .node_limit_reached(info.global_node_count())
+                || info.time_manager.hard_time_limit_reached())
+        {
+            info.stop();
+            return -INF;
+        }
 
-    //     // check for aborted search
-    //     if info.stopped::<M>() {
-    //         pv.clear();
-    //         return 0;
-    //     }
+        // check for aborted search
+        if info.stopped::<M>() {
+            pv.clear();
+            return 0;
+        }
 
-    //     // check for searching too deep
-    //     if ply >= MAX_DEPTH as usize - 1 {
-    //         return self.evaluate(t, ply);
-    //     }
-    // }
+        // check for searching too deep
+        if ply >= MAX_DEPTH as usize - 1 {
+            return self.evaluate(t, ply);
+        }
+
+        info.seldepth = info.seldepth.max(ply + 1);
+        let in_check = self.in_check();
+
+        // TODO: probe TT
+        let mut static_eval = self.evaluate(t, ply);
+
+        // if the static eval is too good the opponent won't play into this position
+        if static_eval >= beta && !in_check {
+            pv.clear();
+            #[cfg(feature = "stats")]
+            {
+                info.fail_highs += 1;
+            }
+            return static_eval;
+        }
+
+        alpha = alpha.max(static_eval);
+        let old_alpha = alpha;
+
+        let mut line = PrincipalVariation::new();
+
+        let [mut noisy, mut quiet] = [MoveList::new(); 2];
+        self.generate_moves_into(&mut noisy, &mut quiet);
+
+        let mut _best_move = None;
+        let mut best_score = static_eval;
+        let mut moves_made = 0;
+
+        for &mv in noisy.iter_moves() {
+            let mut new = *self;
+            if !new.make_move_nnue(mv, t, ply) {
+                continue;
+            }
+            moves_made += 1;
+
+            let score = -new.quiesce::<M>(&mut line, info, t, -beta, -alpha, ply + 1);
+
+            if info.stopped::<M>() {
+                pv.clear();
+                return 0;
+            }
+
+            if score > best_score {
+                best_score = score;
+                if score > alpha {
+                    alpha = score;
+                    _best_move = Some(mv);
+                    pv.update_with(mv, &line);
+                }
+                if alpha >= beta {
+                    #[cfg(feature = "stats")]
+                    {
+                        info.fail_highs += 1;
+                    }
+                    break;
+                }
+            }
+        }
+
+        if moves_made == 0 {
+            pv.clear();
+            if noisy.len() + quiet.len() == 0 {
+                // no legal moves, checkmate or stalemate
+                if in_check {
+                    return -(MATE_SCORE - ply as i32);
+                } else {
+                    return randomize_draw_score(info);
+                }
+            }
+        }
+
+        best_score = best_score.clamp(-MATE_SCORE, MATE_SCORE);
+
+        // TODO: store in TT
+
+        best_score
+    }
 }
 
 fn randomize_draw_score(info: &SearchInfo) -> i32 {
