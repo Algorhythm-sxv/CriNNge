@@ -64,6 +64,11 @@ impl Board {
         info.node_buffer = 0;
         info.stopped.store(false, Ordering::Relaxed);
 
+        // clear leftover PVs from previous searches
+        for t in threads_data.iter_mut() {
+            t.pv.clear();
+        }
+
         let (t1, rest) = threads_data.split_first_mut().unwrap();
         thread::scope(|s| {
             // spawn helper threads
