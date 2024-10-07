@@ -6,6 +6,7 @@ use std::thread;
 
 use info::SearchInfo;
 
+use crate::move_sorting::MoveSorter;
 use crate::moves::{Move, MoveList, PrincipalVariation};
 use crate::types::*;
 use crate::{board::Board, thread_data::ThreadData};
@@ -238,7 +239,7 @@ impl Board {
         }
 
         // probe TT
-        let mut tt_move = Move::NULL;
+        let mut tt_move = None;
         let tt_entry = t.tt.get(self.hash());
         if let Some(entry) = tt_entry {
             if entry.depth as i32 >= depth {
@@ -246,7 +247,7 @@ impl Board {
                 // TODO: use TT score as static eval when not pruned
             }
             // use the best move saved in the TT for move ordering
-            tt_move = entry.best_move;
+            tt_move = Some(entry.best_move);
         }
 
         let mut line = PrincipalVariation::new();
@@ -261,14 +262,14 @@ impl Board {
         }
 
         let [mut noisy, mut quiet] = [MoveList::new(); 2];
-        self.generate_moves_into(&mut noisy, &mut quiet);
+        let mut move_sorter = MoveSorter::new(tt_move, &mut noisy, &mut quiet);
 
         let old_alpha = alpha;
         let mut best_score = -INF;
         let mut best_move = None;
         let mut moves_made = 0;
 
-        for &mv in noisy.iter_moves().chain(quiet.iter_moves()) {
+        while let Some((mv, _)) = move_sorter.next(self, t) {
             let mut new = *self;
 
             if !new.make_move_nnue(mv, t, ply) {
@@ -287,9 +288,9 @@ impl Board {
 
             if score > best_score {
                 best_score = score;
+                best_move = Some(mv);
                 if score > alpha {
                     alpha = score;
-                    best_move = Some(mv);
                     pv.update_with(mv, &line);
                 }
                 if alpha >= beta {
@@ -327,6 +328,10 @@ impl Board {
         } else {
             ScoreType::UpperBound
         };
+
+        if best_move.is_none() {
+            println!("{}", self.fen());
+        }
 
         t.tt.store(
             self.hash(),
@@ -426,9 +431,9 @@ impl Board {
 
             if score > best_score {
                 best_score = score;
+                best_move = Some(mv);
                 if score > alpha {
                     alpha = score;
-                    best_move = Some(mv);
                     pv.update_with(mv, &line);
                 }
                 if alpha >= beta {
@@ -468,7 +473,7 @@ impl Board {
             self.hash(),
             best_score,
             score_type,
-            best_move.expect("TT set with no moves played"),
+            best_move.unwrap_or_default(),
             0, // depth
             ply,
         );

@@ -3,11 +3,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use crate::{
-    moves::Move,
-    search::{MATE_SCORE, MIN_TB_WIN_SCORE},
-    types::*,
-};
+use crate::{moves::Move, search::MIN_TB_WIN_SCORE, types::*};
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct TTEntryInfo(pub u8);

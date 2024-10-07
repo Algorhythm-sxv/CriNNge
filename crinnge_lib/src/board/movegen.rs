@@ -172,4 +172,17 @@ impl Board {
 
         legals
     }
+
+    pub fn pseudolegal_moves(&self) -> Vec<Move> {
+        let mut noisy = MoveList::new();
+        let mut quiet = MoveList::new();
+        self.generate_moves_into(&mut noisy, &mut quiet);
+
+        let mut legals = Vec::new();
+        for mv in noisy.iter_moves().chain(quiet.iter_moves()) {
+            legals.push(*mv)
+        }
+
+        legals
+    }
 }

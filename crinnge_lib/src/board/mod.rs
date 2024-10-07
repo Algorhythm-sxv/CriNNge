@@ -169,7 +169,9 @@ impl Board {
         // update pawn hash for pawn moves
         if piece == Pawn {
             self.pawn_hash ^= zobrist_piece(player, Pawn, from);
-            self.pawn_hash ^= zobrist_piece(player, Pawn, to);
+            if mv.promo().is_none() {
+                self.pawn_hash ^= zobrist_piece(player, Pawn, to);
+            }
         }
 
         // clear ep from pawn hash
@@ -222,10 +224,100 @@ impl Board {
         }
 
         debug_assert!({
-            self.hash == self.recalculate_hash() && self.pawn_hash == self.recalculate_pawn_hash()
+            if self.hash != self.recalculate_hash()
+                || self.pawn_hash != self.recalculate_pawn_hash()
+            {
+                println!("{}, {}", self.fen(), mv.coords());
+                false
+            } else {
+                true
+            }
         });
 
         true
+    }
+
+    pub fn is_pseudolegal(&self, mv: Move) -> bool {
+        // null moves are never legal
+        if mv.is_null() {
+            return false;
+        }
+
+        // piece type on from square
+        let Some(piece) = self.piece_on(mv.from()) else {
+            // from square empty
+            return false;
+        };
+
+        let (pieces, enemy_pieces) = (self.occupied[self.player], self.occupied[!self.player]);
+
+        let from = mv.from().bitboard();
+        let to = mv.to().bitboard();
+
+        // moving from a square without a friendly piece
+        if (from & pieces).is_empty() {
+            return false;
+        }
+
+        // capturing a friendly piece (while not castling)
+        if piece != King && (to & pieces).is_not_empty() {
+            return false;
+        }
+
+        // piece special cases
+        match piece {
+            King => {
+                // castling
+                let rights = self.castles[self.player];
+                if (to & (rights[0] | rights[1])).is_not_empty() {
+                    // get for full castling legality
+                    let kingside = (to & rights[1]).is_not_empty();
+                    let castle = rights[kingside as usize];
+
+                    let rook_from = castle.first_square();
+                    // clear between rook and king
+                    if (lookup_between(mv.from(), rook_from) & self.all_pieces()).is_empty() {
+                        const KING_TARGETS: [[Square; 2]; 2] =
+                            [[Square::C1, Square::C8], [Square::G1, Square::G8]];
+                        let target = KING_TARGETS[kingside as usize][self.player];
+                        let enemy_attacks = self.all_attacks(!self.player);
+                        // clear and safe between king and king target
+                        return (lookup_between(mv.from(), target)
+                            & (self.all_pieces() | enemy_attacks))
+                            .is_empty();
+                    }
+                }
+            }
+            Pawn => {
+                // erroneous promotions
+                if mv.promo().is_some() && (to & (FIRST_RANK | EIGHTH_RANK)).is_empty() {
+                    return false;
+                }
+                // pushes
+                if matches!((mv.to()).abs_diff(*mv.from()), 8 | 16) {
+                    return (self.pawn_pushes(mv.from()) & to).is_not_empty();
+                } else {
+                    // captures
+                    return (self.pawn_attack(mv.from(), self.player)
+                        & to
+                        & (enemy_pieces | self.ep_mask))
+                        .is_not_empty();
+                }
+            }
+            _ => {}
+        }
+
+        let occupied = self.all_pieces();
+        let piece_attacks = match piece {
+            Pawn => unreachable!(),
+            Knight => lookup_knight_moves(mv.from()),
+            Bishop => lookup_bishop_moves(mv.from(), occupied),
+            Rook => lookup_rook_moves(mv.from(), occupied),
+            Queen => lookup_queen_moves(mv.from(), occupied),
+            King => lookup_king_moves(mv.from()),
+        };
+
+        (to & piece_attacks & !pieces).is_not_empty()
     }
 
     pub fn refresh_accumulator(&self, acc: &mut Accumulator) {

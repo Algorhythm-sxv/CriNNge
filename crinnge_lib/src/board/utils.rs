@@ -1,5 +1,5 @@
 use crate::types::*;
-use crinnge_bitboards::{BitBoard, Square, NOT_A_FILE, NOT_H_FILE};
+use crinnge_bitboards::*;
 
 use super::{lookups::*, Board};
 
@@ -63,6 +63,20 @@ impl Board {
         match color {
             White => ((pawn & NOT_A_FILE) << 7) | ((pawn & NOT_H_FILE) << 9),
             Black => ((pawn & NOT_A_FILE) >> 9) | ((pawn & NOT_H_FILE) >> 7),
+        }
+    }
+
+    pub fn pawn_pushes(&self, square: Square) -> BitBoard {
+        let empty = !self.all_pieces();
+        let mask = square.bitboard();
+        if self.player == White {
+            let single = (mask << 8) & empty;
+            let double = (((mask & SECOND_RANK) << 8) & empty) << 8;
+            single | (double & empty)
+        } else {
+            let single = (mask >> 8) & empty;
+            let double = (((mask & SEVENTH_RANK) >> 8) & empty) >> 8;
+            single | (double & empty)
         }
     }
 

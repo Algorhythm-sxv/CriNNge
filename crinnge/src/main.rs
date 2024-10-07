@@ -11,10 +11,17 @@ use std::{
 };
 
 use crinnge_lib::{
-    board::Board, moves::MoveList, nnue::{Accumulator, NNUE}, search::{
+    board::Board,
+    moves::MoveList,
+    nnue::{Accumulator, NNUE},
+    search::{
         info::{SearchInfo, UCI_QUIT},
         options::SearchOptions,
-    }, thread_data::ThreadData, timeman::{TimeData, TimeManager}, tt::TT, types::*
+    },
+    thread_data::ThreadData,
+    timeman::{TimeData, TimeManager},
+    tt::TT,
+    types::*,
 };
 use uci::stdin_reader;
 
@@ -94,6 +101,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             uci::UciCommand::Fen => {
                 println!("info string {}", board.fen());
+            }
+            uci::UciCommand::SetOption => {
+                // placeholder
             }
             uci::UciCommand::Go(options) => {
                 if let Some(depth) = options.perft {

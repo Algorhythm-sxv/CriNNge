@@ -33,6 +33,7 @@ pub enum UciCommand {
     },
     Fen,
     Go(GoCommand),
+    SetOption,
     Eval,
     Quit,
 }
@@ -62,6 +63,7 @@ pub fn parse(command: &str) -> Result<UciCommand, UciError> {
         "position" => parse_position_command(&parts),
         "fen" => Ok(UciCommand::Fen),
         "go" => parse_go_command(&parts),
+        "setoption" => Ok(UciCommand::SetOption),
         "eval" => Ok(UciCommand::Eval),
         "quit" => Ok(UciCommand::Quit),
         _ => Err(UciError::UnknownCommand),
@@ -185,8 +187,8 @@ pub fn print_uci_message() {
     println!("id name CriNNge {}", VERSION);
     println!("id author Algorhythm");
     // TODO: option strings
-    println!("option name Hash type spin min 1 max 99999999 default 8");
-    println!("option name Threads type spin min 1 max 999 default 1");
+    println!("option name Hash type spin default 8 min 1 max 99999999");
+    println!("option name Threads type spin default 1 min 1 max 999");
     println!("uciok");
 }
 
