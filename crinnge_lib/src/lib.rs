@@ -5,6 +5,7 @@ pub mod nnue;
 pub mod thread_data;
 pub mod search;
 pub mod timeman;
+pub mod tt;
 
 pub use crinnge_bitboards::*;
 pub use crate::types::*;

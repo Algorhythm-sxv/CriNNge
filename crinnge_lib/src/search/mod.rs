@@ -12,7 +12,9 @@ use crate::{board::Board, thread_data::ThreadData};
 
 pub const MAX_DEPTH: i32 = 128;
 pub const MATE_SCORE: i32 = 31_000;
+pub const MIN_MATE_SCORE: i32 = MATE_SCORE - MAX_DEPTH;
 pub const TB_WIN_SCORE: i32 = 30_000;
+pub const MIN_TB_WIN_SCORE: i32 = TB_WIN_SCORE - MAX_DEPTH;
 pub const INF: i32 = 32_000;
 
 pub trait ThreadType {
@@ -235,7 +237,17 @@ impl Board {
             return self.evaluate(t, ply);
         }
 
-        // TODO: probe TT
+        // probe TT
+        let mut tt_move = Move::NULL;
+        let tt_entry = t.tt.get(self.hash());
+        if let Some(entry) = tt_entry {
+            if entry.depth as i32 >= depth {
+                // TODO: pruning outside of PV, after PVS impl
+                // TODO: use TT score as static eval when not pruned
+            }
+            // use the best move saved in the TT for move ordering
+            tt_move = entry.best_move;
+        }
 
         let mut line = PrincipalVariation::new();
         let in_check = self.in_check();
@@ -253,7 +265,7 @@ impl Board {
 
         let old_alpha = alpha;
         let mut best_score = -INF;
-        let mut _best_move = None;
+        let mut best_move = None;
         let mut moves_made = 0;
 
         for &mv in noisy.iter_moves().chain(quiet.iter_moves()) {
@@ -267,11 +279,17 @@ impl Board {
             let score =
                 -new.negamax::<NonRoot, M>(&mut line, info, t, -beta, -alpha, depth - 1, ply + 1);
 
+            if info.stopped::<M>() {
+                // can't trust results from stopped searches
+                pv.clear();
+                return 0;
+            }
+
             if score > best_score {
                 best_score = score;
                 if score > alpha {
                     alpha = score;
-                    _best_move = Some(mv);
+                    best_move = Some(mv);
                     pv.update_with(mv, &line);
                 }
                 if alpha >= beta {
@@ -301,7 +319,23 @@ impl Board {
             // TODO: history heuristics
         }
 
-        // TODO: store in TT
+        // store search results in TT
+        let score_type = if best_score >= beta {
+            ScoreType::LowerBound
+        } else if best_score > old_alpha {
+            ScoreType::Exact
+        } else {
+            ScoreType::UpperBound
+        };
+
+        t.tt.store(
+            self.hash(),
+            best_score,
+            score_type,
+            best_move.expect("TT set with no moves played"),
+            depth,
+            ply,
+        );
 
         best_score
     }
@@ -341,7 +375,17 @@ impl Board {
         info.seldepth = info.seldepth.max(ply + 1);
         let in_check = self.in_check();
 
-        // TODO: probe TT
+        // probe TT
+        let mut tt_move = Move::NULL;
+        let tt_entry = t.tt.get(self.hash());
+        if let Some(entry) = tt_entry {
+            // TODO: pruning outside of PV, after PVS impl
+            // TODO: use TT score as static eval when not pruned
+
+            // use the best move saved in the TT for move ordering
+            tt_move = entry.best_move;
+        }
+
         let mut static_eval = self.evaluate(t, ply);
 
         // if the static eval is too good the opponent won't play into this position
@@ -362,7 +406,7 @@ impl Board {
         let [mut noisy, mut quiet] = [MoveList::new(); 2];
         self.generate_moves_into(&mut noisy, &mut quiet);
 
-        let mut _best_move = None;
+        let mut best_move = None;
         let mut best_score = static_eval;
         let mut moves_made = 0;
 
@@ -384,7 +428,7 @@ impl Board {
                 best_score = score;
                 if score > alpha {
                     alpha = score;
-                    _best_move = Some(mv);
+                    best_move = Some(mv);
                     pv.update_with(mv, &line);
                 }
                 if alpha >= beta {
@@ -411,7 +455,23 @@ impl Board {
 
         best_score = best_score.clamp(-MATE_SCORE, MATE_SCORE);
 
-        // TODO: store in TT
+        // store search results in TT
+        let score_type = if best_score >= beta {
+            ScoreType::LowerBound
+        } else if best_score > old_alpha {
+            ScoreType::Exact
+        } else {
+            ScoreType::UpperBound
+        };
+
+        t.tt.store(
+            self.hash(),
+            best_score,
+            score_type,
+            best_move.expect("TT set with no moves played"),
+            0, // depth
+            ply,
+        );
 
         best_score
     }

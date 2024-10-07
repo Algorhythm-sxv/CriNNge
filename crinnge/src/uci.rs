@@ -185,6 +185,8 @@ pub fn print_uci_message() {
     println!("id name CriNNge {}", VERSION);
     println!("id author Algorhythm");
     // TODO: option strings
+    println!("option name Hash type spin min 1 max 99999999 default 8");
+    println!("option name Threads type spin min 1 max 999 default 1");
     println!("uciok");
 }
 

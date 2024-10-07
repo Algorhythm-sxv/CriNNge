@@ -11,16 +11,10 @@ use std::{
 };
 
 use crinnge_lib::{
-    board::Board,
-    moves::MoveList,
-    nnue::{Accumulator, NNUE},
-    search::{
+    board::Board, moves::MoveList, nnue::{Accumulator, NNUE}, search::{
         info::{SearchInfo, UCI_QUIT},
         options::SearchOptions,
-    },
-    thread_data::ThreadData,
-    timeman::{TimeData, TimeManager},
-    types::*,
+    }, thread_data::ThreadData, timeman::{TimeData, TimeManager}, tt::TT, types::*
 };
 use uci::stdin_reader;
 
@@ -28,8 +22,9 @@ pub static VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut board = Board::new();
+    let mut tt = TT::new(8);
     let mut search_options = SearchOptions::default();
-    let mut threads_data = vec![ThreadData::new(&board); search_options.threads];
+    let mut threads_data = vec![ThreadData::new(&board, tt.slice()); search_options.threads];
 
     if env::args().nth(1) == Some("bench".to_string()) {
         let start_time = Instant::now();
@@ -70,7 +65,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             uci::UciCommand::Uci => uci::print_uci_message(),
             uci::UciCommand::UciNewGame => {
                 board = Board::new();
-                threads_data = vec![ThreadData::new(&board); search_options.threads];
+                drop(threads_data);
+                drop(tt);
+                tt = TT::new(search_options.hash);
+                threads_data = vec![ThreadData::new(&board, tt.slice()); search_options.threads];
             }
             uci::UciCommand::IsReady => println!("readyok"),
             uci::UciCommand::Position { start_fen, moves } => {

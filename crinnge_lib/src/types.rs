@@ -79,9 +79,9 @@ use crate::search::INF;
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
 pub enum ScoreType {
     #[default]
-    Exact,
-    LowerBound,
-    UpperBound,
+    Exact = 0,
+    LowerBound = 1,
+    UpperBound = 2,
 }
 
 #[derive(Copy, Clone, Debug)]

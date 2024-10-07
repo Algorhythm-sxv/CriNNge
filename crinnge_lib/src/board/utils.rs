@@ -131,6 +131,14 @@ impl Board {
         self.halfmove_clock
     }
 
+    pub fn hash(&self) -> u64 {
+        self.hash
+    }
+
+    pub fn pawn_hash(&self) -> u64 {
+        self.pawn_hash
+    }
+
     pub fn in_check(&self) -> bool {
         (self.all_attacks(!self.player) & self.kings[self.player]).is_not_empty()
     }

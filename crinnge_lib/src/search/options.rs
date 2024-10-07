@@ -3,6 +3,7 @@ use crate::timeman::TimeOptions;
 #[derive(Copy, Clone, Debug)]
 pub struct SearchOptions {
     pub threads: usize,
+    pub hash: usize,
     pub asp_window_init: i32,
     pub asp_window_scale_percent: i32,
     pub hard_time_percent: i64,
@@ -24,6 +25,7 @@ impl Default for SearchOptions {
     fn default() -> Self {
         Self {
             threads: 1,
+            hash: 8,
             asp_window_init: 40,
             asp_window_scale_percent: 200,
             hard_time_percent: 50,
