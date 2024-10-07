@@ -278,6 +278,8 @@ impl Board {
             }
             moves_made += 1;
 
+            line.clear();
+
             let mut score = -INF;
 
             let search_full_depth_null_window = if moves_made > 1 {
@@ -456,6 +458,8 @@ impl Board {
                 continue;
             }
             moves_made += 1;
+
+            line.clear();
 
             let score = -new.quiesce::<M>(&mut line, info, t, -beta, -alpha, ply + 1);
 
