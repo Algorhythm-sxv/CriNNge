@@ -252,6 +252,7 @@ impl Board {
 
         let mut line = PrincipalVariation::new();
         let in_check = self.in_check();
+        let pv_node = alpha != beta - 1;
 
         info.seldepth = info.seldepth.max(ply + 1);
 
@@ -277,8 +278,42 @@ impl Board {
             }
             moves_made += 1;
 
-            let score =
-                -new.negamax::<NonRoot, M>(&mut line, info, t, -beta, -alpha, depth - 1, ply + 1);
+            let mut score = -INF;
+
+            let search_full_depth_null_window = if moves_made > 1 {
+                // TODO: reduced searches
+                true
+            } else {
+                // first moves in non-PV nodes don't get reduced, and later moves in PV nodes that pass the reduced search
+                // get re-searched at full depth
+                !pv_node || moves_made > 1
+            };
+
+            // full depth null window search on later PV moves or non-PV moves that pass the reduced search
+            if search_full_depth_null_window {
+                score = -new.negamax::<NonRoot, M>(
+                    &mut line,
+                    info,
+                    t,
+                    -alpha - 1,
+                    -alpha,
+                    depth - 1,
+                    ply + 1,
+                );
+            }
+
+            // full search on PV first moves and later moves that improve alpha
+            if pv_node && (moves_made == 1 || (score > alpha && score < beta)) {
+                score = -new.negamax::<NonRoot, M>(
+                    &mut line,
+                    info,
+                    t,
+                    -beta,
+                    -alpha,
+                    depth - 1,
+                    ply + 1,
+                );
+            }
 
             if info.stopped::<M>() {
                 // can't trust results from stopped searches
@@ -289,9 +324,9 @@ impl Board {
             if score > best_score {
                 best_score = score;
                 best_move = Some(mv);
+                pv.update_with(mv, &line);
                 if score > alpha {
                     alpha = score;
-                    pv.update_with(mv, &line);
                 }
                 if alpha >= beta {
                     #[cfg(feature = "stats")]
@@ -432,9 +467,9 @@ impl Board {
             if score > best_score {
                 best_score = score;
                 best_move = Some(mv);
+                pv.update_with(mv, &line);
                 if score > alpha {
                     alpha = score;
-                    pv.update_with(mv, &line);
                 }
                 if alpha >= beta {
                     #[cfg(feature = "stats")]
