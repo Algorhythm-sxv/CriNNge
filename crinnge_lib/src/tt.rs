@@ -147,6 +147,13 @@ impl<'a> TTSlice<'a> {
         self.entries[index].store(entry.pack(), Ordering::Relaxed);
     }
 
+    pub fn fill(&self) -> usize {
+        self.entries[..1000]
+            .iter()
+            .filter(|e| e.load(Ordering::Relaxed) != 0)
+            .count()
+    }
+
     fn key_to_index(&self, key: u64) -> usize {
         ((u128::from(key) * self.entries.len() as u128) >> 64) as usize
     }

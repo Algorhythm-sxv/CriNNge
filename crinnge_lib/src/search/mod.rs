@@ -195,7 +195,7 @@ impl Board {
                 ScoreType::Exact => return score,
             }
 
-            info.print_aw_fail_report::<M>(depth, score, score_type, &t.pv);
+            info.print_aw_fail_report::<M>(depth, score, score_type, &t);
         }
     }
 

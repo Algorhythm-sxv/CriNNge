@@ -137,9 +137,12 @@ impl<'a> SearchInfo<'a> {
             } else {
                 format!("cp {}", t.root_score)
             };
+
+            let hash_fill = t.tt.fill();
+
             println!(
                 "info depth {} seldepth {} score {} nodes {} nps {} hashfull {} time {} pv {}",
-                depth, self.seldepth, score_string, nodes, nps, 0, elapsed, t.pv
+                depth, self.seldepth, score_string, nodes, nps, hash_fill, elapsed, t.pv
             );
         }
     }
@@ -149,7 +152,7 @@ impl<'a> SearchInfo<'a> {
         depth: i32,
         score: i32,
         score_type: ScoreType,
-        prev_pv: &PrincipalVariation,
+        t: &ThreadData,
     ) {
         if M::MAIN_THREAD && self.stdout {
             let nodes = self.global_node_count();
@@ -172,9 +175,20 @@ impl<'a> SearchInfo<'a> {
                 ScoreType::LowerBound => " lowerbound",
                 ScoreType::UpperBound => " upperbound",
             };
+
+            let hash_fill = t.tt.fill();
+
             println!(
                 "info depth {} seldepth {} score {}{} nodes {} nps {} hashfull {} time {} pv {}",
-                depth, self.seldepth, score_string, score_bound, nodes, nps, 0, elapsed, prev_pv
+                depth,
+                self.seldepth,
+                score_string,
+                score_bound,
+                nodes,
+                nps,
+                hash_fill,
+                elapsed,
+                t.pv
             );
         }
     }
