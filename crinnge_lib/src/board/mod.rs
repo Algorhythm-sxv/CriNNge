@@ -264,6 +264,16 @@ impl Board {
             return false;
         }
 
+        // ep or promo set while piece isn't a pawn
+        if piece != Pawn && (mv.is_ep() || mv.promo().is_some()) {
+            return false;
+        }
+
+        // castling set while piece isn't a king
+        if piece != King && mv.is_castling() {
+            return false;
+        }
+
         // piece special cases
         match piece {
             King => {
