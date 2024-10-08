@@ -3,7 +3,7 @@ use crate::moves::{Move, MoveList};
 use crate::thread_data::ThreadData;
 use crate::types::*;
 
-const MVV_LVA: [[i32; 6]; 6] = [
+const MVV_LVA: [[i16; 6]; 6] = [
     [15, 14, 13, 12, 11, 10], // Pawn capture
     [25, 24, 23, 22, 21, 20], // Knight capture
     [35, 34, 33, 32, 31, 30], // Bishop capture
@@ -81,6 +81,7 @@ impl<'a> MoveSorter<'a> {
                 if noisy.is_none() {
                     if !self.noisy_only {
                         self.stage = Quiets;
+                        self.score_quiets(board, t);
                     }
                     break;
                 } else if noisy.map(|e| e.mv) == self.tt_move {
@@ -93,14 +94,14 @@ impl<'a> MoveSorter<'a> {
         if self.stage == Quiets {
             // TODO: score quiets
             loop {
-                let quiet = self.quiets.get(self.quiet_index).map(|m| m.mv);
+                let quiet = self.quiets.next(self.quiet_index);
                 self.quiet_index += 1;
                 if quiet.is_none() {
                     break;
-                } else if quiet == self.tt_move {
+                } else if quiet.map(|e| e.mv) == self.tt_move {
                     continue;
                 }
-                return Some((quiet.unwrap(), Quiets));
+                return Some((quiet.unwrap().mv, Quiets));
             }
         }
 
@@ -114,6 +115,14 @@ impl<'a> MoveSorter<'a> {
             let mvv_lva = MVV_LVA[capture][piece];
 
             noisy.score = mvv_lva;
+        }
+    }
+
+    fn score_quiets(&mut self, board: &Board, t: &ThreadData) {
+        for quiet in self.quiets.iter_mut() {
+            let piece = board.piece_on(quiet.mv.from()).unwrap();
+
+            quiet.score = t.history.get(piece, quiet.mv.to());
         }
     }
 }

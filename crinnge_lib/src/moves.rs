@@ -88,7 +88,7 @@ impl Move {
 #[derive(Copy, Clone, Debug, Default)]
 pub struct MoveListEntry {
     pub mv: Move,
-    pub score: i32,
+    pub score: i16,
 }
 
 #[derive(Clone, Copy, Debug)]

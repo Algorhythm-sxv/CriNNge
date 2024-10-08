@@ -7,6 +7,7 @@ pub mod search;
 pub mod timeman;
 pub mod tt;
 pub mod move_sorting;
+pub mod historytables;
 
 pub use crinnge_bitboards::*;
 pub use crate::types::*;

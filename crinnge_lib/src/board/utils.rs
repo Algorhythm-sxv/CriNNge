@@ -1,7 +1,7 @@
 use crate::types::*;
 use crinnge_bitboards::*;
 
-use super::{lookups::*, Board};
+use super::{lookups::*, Board, Move};
 
 impl Board {
     #[inline(always)]
@@ -188,5 +188,10 @@ impl Board {
         }
 
         hash
+    }
+
+    pub fn is_capture(&self, mv: Move) -> bool {
+        !mv.is_castling()
+            && (mv.is_ep() || (self.occupied[!self.player] & mv.to().bitboard()).is_not_empty())
     }
 }

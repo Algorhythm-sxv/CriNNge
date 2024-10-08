@@ -69,7 +69,7 @@ impl Board {
 
         // clear leftover PVs from previous searches
         for t in threads_data.iter_mut() {
-            t.pv.clear();
+            t.reset();
         }
 
         let (t1, rest) = threads_data.split_first_mut().unwrap();
@@ -275,6 +275,7 @@ impl Board {
         let mut best_score = -INF;
         let mut best_move = None;
         let mut moves_made = 0;
+        let mut quiets_tried = MoveList::new();
 
         while let Some((mv, _)) = move_sorter.next(self, t) {
             let mut new = *self;
@@ -283,6 +284,10 @@ impl Board {
                 continue;
             }
             moves_made += 1;
+            let capture = self.is_capture(mv);
+            if !capture {
+                quiets_tried.push(mv);
+            }
 
             line.clear();
 
@@ -363,10 +368,15 @@ impl Board {
         }
 
         best_score = best_score.clamp(-MATE_SCORE, MATE_SCORE);
+        let best_move = best_move.unwrap_or_else(|| panic!("No best move found: {}", self.fen()));
 
         if alpha != old_alpha {
             // alpha raised, we must have a new PV
-            // TODO: history heuristics
+
+            // update quiet histories if a quiet is best
+            if !self.is_capture(best_move) {
+                t.update_quiet_histories(self, depth, best_move, &quiets_tried);
+            }
         }
 
         // store search results in TT
@@ -378,18 +388,7 @@ impl Board {
             ScoreType::UpperBound
         };
 
-        if best_move.is_none() {
-            println!("{}", self.fen());
-        }
-
-        t.tt.store(
-            self.hash(),
-            best_score,
-            score_type,
-            best_move.expect("TT set with no moves played"),
-            depth,
-            ply,
-        );
+        t.tt.store(self.hash(), best_score, score_type, best_move, depth, ply);
 
         best_score
     }
