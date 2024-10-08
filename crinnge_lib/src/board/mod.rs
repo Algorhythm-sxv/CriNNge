@@ -260,7 +260,7 @@ impl Board {
         }
 
         // capturing a friendly piece (while not castling)
-        if piece != King && (to & pieces).is_not_empty() {
+        if (to & pieces).is_not_empty() && !(piece == King && mv.is_castling()) {
             return false;
         }
 

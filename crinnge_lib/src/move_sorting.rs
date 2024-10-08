@@ -47,9 +47,12 @@ impl<'a> MoveSorter<'a> {
                 if board.is_pseudolegal(mv) {
                     debug_assert!(
                         board.pseudolegal_moves().contains(&mv),
-                        "Illegal TT move passed pseudolegal check: {}, {}",
+                        "Illegal TT move passed pseudolegal check: {}, {}, c: {}, ep: {}, promo: {:?}",
                         board.fen(),
-                        mv.coords()
+                        mv.coords(),
+                        mv.is_castling(),
+                        mv.is_ep(),
+                        mv.promo(),
                     );
                     return Some((mv, TTMove));
                 }
