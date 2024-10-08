@@ -428,12 +428,17 @@ impl Board {
 
         info.seldepth = info.seldepth.max(ply + 1);
         let in_check = self.in_check();
+        let pv_node = alpha != beta - 1;
 
         // probe TT
         let mut tt_move = None;
         let tt_entry = t.tt.get(self.hash());
         if let Some(entry) = tt_entry {
             // TODO: pruning outside of PV, after PVS impl
+            if !pv_node && entry.score_beats_bounds(alpha, beta, ply) {
+                pv.clear();
+                return entry.score.get(ply);
+            }
             // TODO: use TT score as static eval when not pruned
 
             // use the best move saved in the TT for move ordering
