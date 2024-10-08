@@ -19,22 +19,25 @@ pub struct MoveSorter<'a> {
     quiets: &'a mut MoveList,
     quiet_index: usize,
     stage: MoveGenStage,
+    noisy_only: bool,
 }
 
 impl<'a> MoveSorter<'a> {
-    pub fn new(
-        tt_move: Option<Move>,
-        captures: &'a mut MoveList,
-        quiets: &'a mut MoveList,
-    ) -> Self {
+    pub fn new(tt_move: Option<Move>, noisies: &'a mut MoveList, quiets: &'a mut MoveList) -> Self {
         Self {
             tt_move,
-            noisies: captures,
+            noisies,
             noisy_index: 0,
             quiets,
             quiet_index: 0,
             stage: TTMove,
+            noisy_only: false,
         }
+    }
+
+    pub fn noisy_only(mut self) -> Self {
+        self.noisy_only = true;
+        self
     }
 
     pub fn next(&mut self, board: &Board, _t: &ThreadData) -> Option<(Move, MoveGenStage)> {
@@ -64,7 +67,9 @@ impl<'a> MoveSorter<'a> {
                 let noisy = self.noisies.get(self.noisy_index).map(|m| m.mv);
                 self.noisy_index += 1;
                 if noisy.is_none() {
-                    self.stage = Quiets;
+                    if !self.noisy_only {
+                        self.stage = Quiets;
+                    }
                     break;
                 } else if noisy == self.tt_move {
                     continue;

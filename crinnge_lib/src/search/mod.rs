@@ -424,14 +424,16 @@ impl Board {
         let in_check = self.in_check();
 
         // probe TT
-        let mut tt_move = Move::NULL;
+        let mut tt_move = None;
         let tt_entry = t.tt.get(self.hash());
         if let Some(entry) = tt_entry {
             // TODO: pruning outside of PV, after PVS impl
             // TODO: use TT score as static eval when not pruned
 
             // use the best move saved in the TT for move ordering
-            tt_move = entry.best_move;
+            if entry.best_move != Move::NULL {
+                tt_move = Some(entry.best_move);
+            }
         }
 
         let mut static_eval = self.evaluate(t, ply);
@@ -452,13 +454,13 @@ impl Board {
         let mut line = PrincipalVariation::new();
 
         let [mut noisy, mut quiet] = [MoveList::new(); 2];
-        self.generate_moves_into(&mut noisy, &mut quiet);
+        let mut move_sorter = MoveSorter::new(tt_move, &mut noisy, &mut quiet).noisy_only();
 
         let mut best_move = None;
         let mut best_score = static_eval;
         let mut moves_made = 0;
 
-        for &mv in noisy.iter_moves() {
+        while let Some((mv, _)) = move_sorter.next(self, t) {
             let mut new = *self;
             if !new.make_move_nnue(mv, t, ply) {
                 continue;
