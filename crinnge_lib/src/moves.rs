@@ -117,6 +117,26 @@ impl MoveList {
     pub fn clear(&mut self) {
         self.len = 0;
     }
+
+    pub fn next(&mut self, index: usize) -> Option<MoveListEntry> {
+        if index >= self.len {
+            return None;
+        }
+        let mut best_score = self.moves[index].score;
+        let mut best_index = index;
+
+        for i in index + 1..self.len {
+            let score = self.moves[i].score;
+            if score >= best_score {
+                best_score = score;
+                best_index = i;
+            }
+        }
+
+        self.moves.swap(index, best_index);
+
+        Some(self.moves[index])
+    }
 }
 
 impl Deref for MoveList {

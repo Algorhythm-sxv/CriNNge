@@ -1,7 +1,16 @@
 use crate::board::Board;
 use crate::moves::{Move, MoveList};
 use crate::thread_data::ThreadData;
+use crate::types::*;
 
+const MVV_LVA: [[i32; 6]; 6] = [
+    [15, 14, 13, 12, 11, 10], // Pawn capture
+    [25, 24, 23, 22, 21, 20], // Knight capture
+    [35, 34, 33, 32, 31, 30], // Bishop capture
+    [45, 44, 43, 42, 41, 40], // Rook capture
+    [55, 54, 53, 52, 51, 50], // Queen capture
+    [0, 0, 0, 0, 0, 0],       // King capture (not possible)
+];
 #[derive(PartialEq, Eq)]
 pub enum MoveGenStage {
     TTMove,
@@ -40,7 +49,7 @@ impl<'a> MoveSorter<'a> {
         self
     }
 
-    pub fn next(&mut self, board: &Board, _t: &ThreadData) -> Option<(Move, MoveGenStage)> {
+    pub fn next(&mut self, board: &Board, t: &ThreadData) -> Option<(Move, MoveGenStage)> {
         if self.stage == TTMove {
             self.stage = GenerateMoves;
             if let Some(mv) = self.tt_move {
@@ -62,22 +71,22 @@ impl<'a> MoveSorter<'a> {
         if self.stage == GenerateMoves {
             self.stage = Noisies;
             board.generate_moves_into(self.noisies, self.quiets);
+            self.score_noisies(board, t);
         }
 
         if self.stage == Noisies {
-            // TODO: score noisies
             loop {
-                let noisy = self.noisies.get(self.noisy_index).map(|m| m.mv);
+                let noisy = self.noisies.next(self.noisy_index);
                 self.noisy_index += 1;
                 if noisy.is_none() {
                     if !self.noisy_only {
                         self.stage = Quiets;
                     }
                     break;
-                } else if noisy == self.tt_move {
+                } else if noisy.map(|e| e.mv) == self.tt_move {
                     continue;
                 }
-                return Some((noisy.unwrap(), Noisies));
+                return Some((noisy.unwrap().mv, Noisies));
             }
         }
 
@@ -96,5 +105,15 @@ impl<'a> MoveSorter<'a> {
         }
 
         None
+    }
+
+    fn score_noisies(&mut self, board: &Board, _t: &ThreadData) {
+        for noisy in self.noisies.iter_mut() {
+            let piece = board.piece_on(noisy.mv.from()).unwrap();
+            let capture = board.piece_on(noisy.mv.to()).unwrap_or(Pawn); // promotions may not have a capture
+            let mvv_lva = MVV_LVA[capture][piece];
+
+            noisy.score = mvv_lva;
+        }
     }
 }
