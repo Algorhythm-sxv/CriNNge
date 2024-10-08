@@ -36,7 +36,7 @@ impl TTScore {
         Self(tt_score as i16)
     }
 
-    fn get(&self, ply: usize) -> i32 {
+    pub fn get(&self, ply: usize) -> i32 {
         let score = if self.0 >= MIN_TB_WIN_SCORE as i16 {
             self.0 - ply as i16
         } else if self.0 <= -MIN_TB_WIN_SCORE as i16 {
@@ -64,6 +64,12 @@ impl TTEntry {
     pub fn pack(&self) -> u64 {
         // SAFETY: u64 has no invalid bit patterns and TTEntry is the same size
         unsafe { std::mem::transmute(*self) }
+    }
+
+    pub fn score_beats_bounds(&self, alpha: i32, beta: i32, ply: usize) -> bool {
+        self.info.score_type() == ScoreType::Exact
+            || (self.info.score_type() == ScoreType::LowerBound && self.score.get(ply) >= beta)
+            || (self.info.score_type() == ScoreType::UpperBound && self.score.get(ply) <= alpha)
     }
 }
 

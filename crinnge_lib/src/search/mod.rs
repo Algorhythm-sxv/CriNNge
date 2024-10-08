@@ -238,21 +238,27 @@ impl Board {
             return self.evaluate(t, ply);
         }
 
+        let pv_node = alpha != beta - 1;
+
         // probe TT
         let mut tt_move = None;
         let tt_entry = t.tt.get(self.hash());
         if let Some(entry) = tt_entry {
-            if entry.depth as i32 >= depth {
-                // TODO: pruning outside of PV, after PVS impl
-                // TODO: use TT score as static eval when not pruned
+            if !pv_node && entry.depth as i32 >= depth && entry.score_beats_bounds(alpha, beta, ply)
+            {
+                pv.clear();
+                return entry.score.get(ply);
             }
+            // TODO: use TT score as static eval when not pruned
+
             // use the best move saved in the TT for move ordering
-            tt_move = Some(entry.best_move);
+            if entry.best_move != Move::NULL {
+                tt_move = Some(entry.best_move);
+            }
         }
 
         let mut line = PrincipalVariation::new();
         let in_check = self.in_check();
-        let pv_node = alpha != beta - 1;
 
         info.seldepth = info.seldepth.max(ply + 1);
 
