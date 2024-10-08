@@ -310,6 +310,12 @@ impl Board {
                 );
             }
 
+            if info.stopped::<M>() {
+                // can't trust results from stopped searches
+                pv.clear();
+                return 0;
+            }
+
             // full search on PV first moves and later moves that improve alpha
             if pv_node && (moves_made == 1 || (score > alpha && score < beta)) {
                 score = -new.negamax::<NonRoot, M>(
