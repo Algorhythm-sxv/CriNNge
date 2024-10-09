@@ -601,6 +601,7 @@ impl Board {
     }
 }
 
-fn randomize_draw_score(info: &SearchInfo) -> i32 {
-    4 - (info.global_node_count() as i32 & 7)
+fn randomize_draw_score(_info: &SearchInfo) -> i32 {
+    // 4 - (info.global_node_count() as i32 & 7)
+    0
 }
