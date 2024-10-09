@@ -195,7 +195,7 @@ impl Board {
                 ScoreType::Exact => return score,
             }
 
-            info.print_aw_fail_report::<M>(depth, score, score_type, &t);
+            info.print_aw_fail_report::<M>(depth, score, score_type, t);
         }
     }
 
@@ -259,6 +259,42 @@ impl Board {
 
         let mut line = PrincipalVariation::new();
         let in_check = self.in_check();
+
+        // Whole-node pruning techniques to hopefully prune before movegen and search
+        if !R::ROOT && !pv_node && !in_check {
+            // TODO: nmp only when static eval >= beta
+            if t.nmp_enabled && depth >= info.options.nmp_depth && self.has_non_pawns(self.player())
+            {
+                let c = info.options.nmp_r_const;
+                let l = depth / info.options.nmp_r_depth_divisor;
+                // TODO: eval-beta nmp reduction
+                let r = c + l;
+
+                // TODO: search history for repetitions
+
+                let mut new = *self;
+                new.make_null_move_nnue(t, ply);
+                t.nmp_enabled = false;
+                let mut score = -new.negamax::<NonRoot, M>(
+                    &mut line,
+                    info,
+                    t,
+                    -beta,
+                    -beta + 1,
+                    depth - r,
+                    ply + 1,
+                );
+                t.nmp_enabled = true;
+
+                if score >= beta {
+                    // don't let TB results leak out of NMP
+                    if score >= MIN_TB_WIN_SCORE {
+                        score = beta;
+                    }
+                    return score;
+                }
+            }
+        }
 
         info.seldepth = info.seldepth.max(ply + 1);
 

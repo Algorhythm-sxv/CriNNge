@@ -194,4 +194,12 @@ impl Board {
         !mv.is_castling()
             && (mv.is_ep() || (self.occupied[!self.player] & mv.to().bitboard()).is_not_empty())
     }
+
+    pub fn has_non_pawns(&self, player: Color) -> bool {
+        (self.knights[player]
+            | self.bishops[player]
+            | self.rooks[player]
+            | self.queens[player])
+            .is_not_empty()
+    }
 }

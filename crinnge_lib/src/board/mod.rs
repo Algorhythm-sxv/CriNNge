@@ -237,6 +237,24 @@ impl Board {
         true
     }
 
+    pub fn make_null_move_only(&mut self) {
+        self.hash ^= zobrist_player() ^ zobrist_ep(self.ep_mask);
+
+        self.player = !self.player;
+        self.ep_mask = BitBoard::empty();
+        self.hash ^= zobrist_ep(self.ep_mask);
+        self.halfmove_clock += 1;
+
+        debug_assert!(self.hash == self.recalculate_hash());
+    }
+
+    pub fn make_null_move_nnue(&mut self, t: &mut ThreadData, ply: usize) {
+        self.make_null_move_only();
+
+        // copy accumulators to next ply
+        t.accumulators[ply + 1] = t.accumulators[ply]
+    }
+
     pub fn is_pseudolegal(&self, mv: Move) -> bool {
         // null moves are never legal
         if mv.is_null() {

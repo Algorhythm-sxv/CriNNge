@@ -9,6 +9,9 @@ pub struct SearchOptions {
     pub hard_time_percent: i64,
     pub soft_time_percent: i64,
     pub inc_percent: i64,
+    pub nmp_depth: i32,
+    pub nmp_r_const: i32,
+    pub nmp_r_depth_divisor: i32,
 }
 
 impl SearchOptions {
@@ -31,6 +34,9 @@ impl Default for SearchOptions {
             hard_time_percent: 50,
             soft_time_percent: 5,
             inc_percent: 50,
+            nmp_depth: 1,
+            nmp_r_const: 3,
+            nmp_r_depth_divisor: 3,
         }
     }
 }

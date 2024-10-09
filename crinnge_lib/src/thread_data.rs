@@ -5,7 +5,6 @@ use crate::{
     nnue::Accumulator,
     search::MAX_DEPTH,
     tt::TTSlice,
-    types::*,
 };
 
 #[derive(Clone, Debug)]
@@ -16,6 +15,7 @@ pub struct ThreadData<'a> {
     pub depth_reached: i32,
     pub tt: TTSlice<'a>,
     pub history: HistoryTable,
+    pub nmp_enabled: bool,
 }
 
 impl<'a> ThreadData<'a> {
@@ -27,6 +27,7 @@ impl<'a> ThreadData<'a> {
             depth_reached: 0,
             tt,
             history: HistoryTable::new(),
+            nmp_enabled: true,
         };
 
         board.refresh_accumulator(&mut data.accumulators[0]);
@@ -70,5 +71,6 @@ impl<'a> ThreadData<'a> {
     pub fn reset(&mut self) {
         self.pv.clear();
         self.history.clear();
+        self.nmp_enabled = true;
     }
 }

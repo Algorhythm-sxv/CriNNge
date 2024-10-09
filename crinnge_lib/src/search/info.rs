@@ -8,7 +8,6 @@ use std::{
 };
 
 use crate::{
-    moves::PrincipalVariation,
     search::{MATE_SCORE, MAX_DEPTH},
     thread_data::ThreadData,
     timeman::TimeManager,
