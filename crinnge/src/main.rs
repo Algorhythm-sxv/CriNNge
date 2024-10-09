@@ -148,6 +148,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let global_nodes = AtomicU64::new(0);
                 let mut info = SearchInfo::new(&stop_signal, &global_nodes)
                     .time_manager(time_manager)
+                    .options(search_options)
                     .stdin(Some(&stdin_rx));
 
                 board.search(&mut info, &mut threads_data);

@@ -10,3 +10,6 @@ path = "src/lib.rs"
 [dependencies]
 crinnge_bitboards = {path = "../crinnge_bitboards"}
 crinnge_pregen = {path = "../crinnge_pregen"}
+
+[features]
+stats = []

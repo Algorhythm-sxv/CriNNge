@@ -74,6 +74,11 @@ impl<'a> SearchInfo<'a> {
         self
     }
 
+    pub fn options(mut self, options: SearchOptions) -> Self {
+        self.options = options;
+        self
+    }
+
     pub fn inc_nodes(&mut self) -> bool {
         self.node_buffer += 1;
         if self.node_buffer >= Self::MAX_LOCAL_NODES {

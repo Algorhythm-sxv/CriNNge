@@ -105,9 +105,9 @@ impl Board {
 
         // reporting to stdout
         if info.stdout {
-            println!("bestmove {}", best_move.coords());
             #[cfg(feature = "stats")]
             info.print_stats(best_thread.depth_reached);
+            println!("bestmove {}", best_move.coords());
         }
 
         (best_thread.root_score, Some(best_move))
@@ -177,19 +177,10 @@ impl Board {
                 // fail low
                 ScoreType::UpperBound => {
                     window.expand_down(info.options.asp_window_scale_percent);
-                    #[cfg(feature = "stats")]
-                    {
-                        info.fail_lows += 1;
-                    }
                 }
                 // fail high
                 ScoreType::LowerBound => {
                     window.expand_up(info.options.asp_window_scale_percent);
-
-                    #[cfg(feature = "stats")]
-                    {
-                        info.fail_highs += 1;
-                    }
                 }
                 // within window
                 ScoreType::Exact => return score,
@@ -266,6 +257,10 @@ impl Board {
         let mut tt_move = None;
         let tt_entry = t.tt.get(self.hash());
         if let Some(entry) = tt_entry {
+            #[cfg(feature = "stats")]
+            {
+                info.tt_hits += 1;
+            }
             if !pv_node && entry.depth as i32 >= depth && entry.score_beats_bounds(alpha, beta, ply)
             {
                 pv.clear();
@@ -428,7 +423,6 @@ impl Board {
 
         best_score = best_score.clamp(-MATE_SCORE, MATE_SCORE);
         let best_move = best_move.unwrap_or_else(|| panic!("No best move found: {}", self.fen()));
-
         if alpha != old_alpha {
             // alpha raised, we must have a new PV
 
@@ -444,6 +438,11 @@ impl Board {
         } else if best_score > old_alpha {
             ScoreType::Exact
         } else {
+            // no move improved alpha
+            #[cfg(feature = "stats")]
+            {
+                info.fail_lows += 1;
+            }
             ScoreType::UpperBound
         };
 
@@ -492,6 +491,10 @@ impl Board {
         let mut tt_move = None;
         let tt_entry = t.tt.get(self.hash());
         if let Some(entry) = tt_entry {
+            #[cfg(feature = "stats")]
+            {
+                info.tt_hits += 1;
+            }
             // TODO: pruning outside of PV, after PVS impl
             if !pv_node && entry.score_beats_bounds(alpha, beta, ply) {
                 pv.clear();
