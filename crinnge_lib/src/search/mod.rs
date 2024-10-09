@@ -238,6 +238,28 @@ impl Board {
             return self.evaluate(t, ply);
         }
 
+        info.seldepth = info.seldepth.max(ply + 1);
+
+        if !R::ROOT && self.halfmove_clock() >= 100 {
+            pv.clear();
+            return randomize_draw_score(info);
+        }
+
+        // check for repetitions
+        let mut rep_count = 0;
+        let len = t.search_history.len().saturating_sub(1);
+        for i in (1..=self.halfmove_clock()).step_by(2) {
+            if let Some(&hash) = t.search_history.get(len.wrapping_sub(i as usize)) {
+                rep_count += (hash == self.hash()) as usize;
+                if rep_count >= 2 {
+                    // this position has been repeated at least twice, so this instance is an automatic draw
+                    return randomize_draw_score(info);
+                }
+            } else {
+                break;
+            }
+        }
+
         let pv_node = alpha != beta - 1;
 
         // probe TT
@@ -270,11 +292,11 @@ impl Board {
                 // TODO: eval-beta nmp reduction
                 let r = c + l;
 
-                // TODO: search history for repetitions
+                t.search_history.push(self.hash());
+                t.nmp_enabled = false;
 
                 let mut new = *self;
                 new.make_null_move_nnue(t, ply);
-                t.nmp_enabled = false;
                 let mut score = -new.negamax::<NonRoot, M>(
                     &mut line,
                     info,
@@ -285,6 +307,13 @@ impl Board {
                     ply + 1,
                 );
                 t.nmp_enabled = true;
+                t.search_history.pop();
+
+                if info.stopped::<M>() {
+                    // can't trust results from stopped searches
+                    pv.clear();
+                    return 0;
+                }
 
                 if score >= beta {
                     // don't let TB results leak out of NMP
@@ -296,14 +325,6 @@ impl Board {
             }
         }
 
-        info.seldepth = info.seldepth.max(ply + 1);
-
-        if !R::ROOT && self.halfmove_clock() >= 100 {
-            // TODO: repetition detection
-            pv.clear();
-            return randomize_draw_score(info);
-        }
-
         let [mut noisy, mut quiet] = [MoveList::new(); 2];
         let mut move_sorter = MoveSorter::new(tt_move, &mut noisy, &mut quiet);
 
@@ -313,6 +334,7 @@ impl Board {
         let mut moves_made = 0;
         let mut quiets_tried = MoveList::new();
 
+        t.search_history.push(self.hash());
         while let Some((mv, _)) = move_sorter.next(self, t) {
             let mut new = *self;
 
@@ -392,6 +414,7 @@ impl Board {
                 }
             }
         }
+        t.search_history.pop();
 
         if moves_made == 0 {
             // no legal moves, checkmate or stalemate

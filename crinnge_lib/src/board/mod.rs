@@ -211,6 +211,10 @@ impl Board {
         self.hash ^= zobrist_castling(self.castles);
 
         self.halfmove_clock += 1;
+        if piece == Pawn || capture.is_some() {
+            self.halfmove_clock = 0;
+        }
+
         if player == Black {
             self.fullmove_count += 1;
         }

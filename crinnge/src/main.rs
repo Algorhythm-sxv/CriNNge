@@ -84,10 +84,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 } else {
                     Board::new()
                 };
+                let mut prehistory = vec![test_board.hash()];
+
                 for mv in moves.iter() {
                     let legals = test_board.legal_moves();
                     let legal = legals.iter().find(|m| &m.coords() == mv);
                     if let Some(mv) = legal {
+                        prehistory.push(test_board.hash());
                         assert!(test_board.make_move_only(*mv));
                     } else {
                         eprintln!("info string Illegal move: {mv}");
@@ -97,6 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 board = test_board;
                 for t in threads_data.iter_mut() {
                     board.refresh_accumulator(&mut t.accumulators[0]);
+                    t.search_history.clone_from(&prehistory);
                 }
             }
             uci::UciCommand::Fen => {

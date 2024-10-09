@@ -9,6 +9,7 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub struct ThreadData<'a> {
+    pub search_history: Vec<u64>,
     pub accumulators: [Accumulator; MAX_DEPTH as usize],
     pub pv: PrincipalVariation,
     pub root_score: i32,
@@ -21,6 +22,7 @@ pub struct ThreadData<'a> {
 impl<'a> ThreadData<'a> {
     pub fn new(board: &Board, tt: TTSlice<'a>) -> ThreadData<'a> {
         let mut data = Self {
+            search_history: vec![],
             accumulators: [Accumulator::default(); MAX_DEPTH as usize],
             pv: PrincipalVariation::new(),
             root_score: 0,
