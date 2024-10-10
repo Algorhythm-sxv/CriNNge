@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     if env::args().nth(1) == Some("bench".to_string()) {
         let start_time = Instant::now();
-        let time_manager = TimeManager::new(start_time).fixed_depth(Some(8));
+        let time_manager = TimeManager::new(start_time).fixed_depth(Some(10));
         let node_counter = AtomicU64::new(0);
         let stop_signal = AtomicBool::new(false);
         let mut info = SearchInfo::new(&stop_signal, &node_counter)

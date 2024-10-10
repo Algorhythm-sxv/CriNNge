@@ -9,7 +9,7 @@ use std::{
 
 use crinnge_lib::{
     board::Board,
-    search::{info::UCI_QUIT, options::SearchOptions},
+    search::{info::UCI_QUIT, options::SearchOptions, INF, MAX_DEPTH},
 };
 
 use crate::VERSION;
@@ -221,18 +221,67 @@ fn parse_setoption_command(
             };
             options.hash = n;
         }
+        "aspwindowinit" => {
+            let Ok(n @ 1..=INF) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.asp_window_init = n;
+        }
+        "aspwindowscalepercent" => {
+            let Ok(n @ 1..=INF) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.asp_window_scale_percent = n;
+        }
+        "hardtimepercent" => {
+            let Ok(n @ 1..=100) = value.parse::<i64>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.hard_time_percent = n;
+        }
+        "softtimepercent" => {
+            let Ok(n @ 1..=100) = value.parse::<i64>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.soft_time_percent = n;
+        }
+        "incpercent" => {
+            let Ok(n @ 1..=100) = value.parse::<i64>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.inc_percent = n;
+        }
+        "nmpdepth" => {
+            let Ok(n @ 1..=MAX_DEPTH) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.nmp_depth = n;
+        }
+        "nmpreductionconst" => {
+            let Ok(n @ 1..=MAX_DEPTH) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.nmp_r_const = n;
+        }
+        "nmpreductiondepthdivisor" => {
+            let Ok(n @ 1..=MAX_DEPTH) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.nmp_r_depth_divisor = n;
+        }
         _ => return Err(UciError::UnknownOption(name.to_string())),
     }
 
-    Ok(UciCommand::SetOption(name.to_ascii_lowercase().to_string(), value.to_string()))
+    Ok(UciCommand::SetOption(
+        name.to_ascii_lowercase().to_string(),
+        value.to_string(),
+    ))
 }
 
 pub fn print_uci_message() {
     println!("id name CriNNge {}", VERSION);
     println!("id author Algorhythm");
-    // TODO: option strings
-    println!("option name Hash type spin default 8 min 1 max 999999");
-    println!("option name Threads type spin default 1 min 1 max 999");
+    print!("{}", SearchOptions::default());
     println!("uciok");
 }
 

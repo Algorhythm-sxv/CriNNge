@@ -1,4 +1,9 @@
-use crate::timeman::TimeOptions;
+use std::fmt::Display;
+
+use crate::{
+    search::{INF, MAX_DEPTH},
+    timeman::TimeOptions,
+};
 
 #[derive(Copy, Clone, Debug)]
 pub struct SearchOptions {
@@ -38,5 +43,24 @@ impl Default for SearchOptions {
             nmp_r_const: 3,
             nmp_r_depth_divisor: 3,
         }
+    }
+}
+
+impl Display for SearchOptions {
+    #[rustfmt::skip]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "option name Threads type spin default {} min 1 max 999", self.threads)?;
+        writeln!(f, "option name Hash type spin default {} min 1 max 999", self.hash)?;
+        #[cfg(feature = "tuning")] {
+        writeln!(f, "option name AspWindowInit type spin default {} min 1 max {}", self.asp_window_init, INF)?;
+        writeln!(f, "option name AspWindowScalePercent type spin default {} min 101 max 999", self.asp_window_scale_percent)?;
+        writeln!(f, "option name HardTimePercent type spin default {} min 1 max 100", self.hard_time_percent)?;
+        writeln!(f, "option name SoftTimePercent type spin default {} min 1 max 100", self.soft_time_percent)?;
+        writeln!(f, "option name IncPercent type spin default {} min 1 max 100", self.inc_percent)?;
+        writeln!(f, "option name NmpDepth type spin default {} min 0 max {}", self.nmp_depth, MAX_DEPTH)?;
+        writeln!(f, "option name NmpReductionConst type spin default {} min 0 max {}", self.nmp_r_const, MAX_DEPTH)?;
+        writeln!(f, "option name NmpReductionDepthDivisor type spin default {} min 1 max {}", self.nmp_r_const, MAX_DEPTH)?;
+        }
+        Ok(())
     }
 }
