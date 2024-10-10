@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             UCI_QUIT.store(true, Ordering::Relaxed);
             break;
         };
-        let command = uci::parse(&line);
+        let command = uci::parse(&line, &mut search_options);
 
         if let Err(e) = command {
             eprintln!("info string {:?}", e);
@@ -106,8 +106,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             uci::UciCommand::Fen => {
                 println!("info string {}", board.fen());
             }
-            uci::UciCommand::SetOption => {
-                // placeholder
+            uci::UciCommand::SetOption(name, _) => {
+                if matches!(name.as_str(), "threads" | "hash") {
+                    drop(threads_data);
+                    tt.resize(search_options.hash);
+                    threads_data =
+                        vec![ThreadData::new(&board, tt.slice()); search_options.threads];
+                }
             }
             uci::UciCommand::Go(options) => {
                 if let Some(depth) = options.perft {

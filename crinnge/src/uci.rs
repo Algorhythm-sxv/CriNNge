@@ -7,7 +7,10 @@ use std::{
     thread,
 };
 
-use crinnge_lib::{board::Board, search::info::UCI_QUIT};
+use crinnge_lib::{
+    board::Board,
+    search::{info::UCI_QUIT, options::SearchOptions},
+};
 
 use crate::VERSION;
 
@@ -33,12 +36,12 @@ pub enum UciCommand {
     },
     Fen,
     Go(GoCommand),
-    SetOption,
+    SetOption(String, String),
     Eval,
     Quit,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub enum UciError {
     EmptyCommand,
     IncompleteCommand,
@@ -46,9 +49,11 @@ pub enum UciError {
     InvalidFen,
     InvalidPositionCommand,
     InvalidGoCommand,
+    InvalidSetoptionCommand,
+    UnknownOption(String),
 }
 
-pub fn parse(command: &str) -> Result<UciCommand, UciError> {
+pub fn parse(command: &str, options: &mut SearchOptions) -> Result<UciCommand, UciError> {
     let parts: Vec<_> = command.split(' ').collect();
 
     match parts
@@ -63,7 +68,7 @@ pub fn parse(command: &str) -> Result<UciCommand, UciError> {
         "position" => parse_position_command(&parts),
         "fen" => Ok(UciCommand::Fen),
         "go" => parse_go_command(&parts),
-        "setoption" => Ok(UciCommand::SetOption),
+        "setoption" => parse_setoption_command(&parts, options),
         "eval" => Ok(UciCommand::Eval),
         "quit" => Ok(UciCommand::Quit),
         _ => Err(UciError::UnknownCommand),
@@ -183,11 +188,50 @@ fn parse_go_command(parts: &[&str]) -> Result<UciCommand, UciError> {
     }))
 }
 
+fn parse_setoption_command(
+    parts: &[&str],
+    options: &mut SearchOptions,
+) -> Result<UciCommand, UciError> {
+    if parts.get(1) != Some(&"name") {
+        return Err(UciError::InvalidSetoptionCommand);
+    }
+
+    let Some(name) = parts.get(2) else {
+        return Err(UciError::InvalidSetoptionCommand);
+    };
+
+    if parts.get(3) != Some(&"value") {
+        return Err(UciError::InvalidSetoptionCommand);
+    }
+
+    let Some(value) = parts.get(4) else {
+        return Err(UciError::InvalidSetoptionCommand);
+    };
+
+    match name.to_ascii_lowercase().as_str() {
+        "threads" => {
+            let Ok(n @ 1..=999) = value.parse::<usize>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.threads = n;
+        }
+        "hash" => {
+            let Ok(n @ 0..=999999) = value.parse::<usize>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.hash = n;
+        }
+        _ => return Err(UciError::UnknownOption(name.to_string())),
+    }
+
+    Ok(UciCommand::SetOption(name.to_ascii_lowercase().to_string(), value.to_string()))
+}
+
 pub fn print_uci_message() {
     println!("id name CriNNge {}", VERSION);
     println!("id author Algorhythm");
     // TODO: option strings
-    println!("option name Hash type spin default 8 min 1 max 99999999");
+    println!("option name Hash type spin default 8 min 1 max 999999");
     println!("option name Threads type spin default 1 min 1 max 999");
     println!("uciok");
 }
