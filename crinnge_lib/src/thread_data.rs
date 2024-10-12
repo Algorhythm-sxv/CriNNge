@@ -11,6 +11,7 @@ use crate::{
 pub struct ThreadData<'a> {
     pub search_history: Vec<u64>,
     pub accumulators: [Accumulator; MAX_DEPTH as usize],
+    pub evals: [i32; MAX_DEPTH as usize],
     pub pv: PrincipalVariation,
     pub root_score: i32,
     pub depth_reached: i32,
@@ -24,6 +25,7 @@ impl<'a> ThreadData<'a> {
         let mut data = Self {
             search_history: vec![],
             accumulators: [Accumulator::default(); MAX_DEPTH as usize],
+            evals: [0; MAX_DEPTH as usize],
             pv: PrincipalVariation::new(),
             root_score: 0,
             depth_reached: 0,
@@ -69,7 +71,7 @@ impl<'a> ThreadData<'a> {
             );
         }
     }
-    
+
     pub fn reset(&mut self) {
         self.pv.clear();
         self.history.clear();

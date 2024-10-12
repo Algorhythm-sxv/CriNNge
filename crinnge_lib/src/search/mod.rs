@@ -278,8 +278,33 @@ impl Board {
         let mut line = PrincipalVariation::new();
         let in_check = self.in_check();
 
+        let mut eval = if in_check {
+            // static eval isn't valid while in check
+            -INF
+        } else {
+            self.evaluate(t, ply)
+        };
+
+        // use TT score as static eval if the bounds work
+        if let Some(entry) = tt_entry {
+            if entry.score_beats_bounds(eval, eval, ply) {
+                eval = entry.score.get(ply);
+            }
+        }
+
+        // store the current static eval for use with heuristics down the tree
+        t.evals[ply] = eval;
+
+        // TODO: improving
+
         // Whole-node pruning techniques to hopefully prune before movegen and search
         if !R::ROOT && !pv_node && !in_check {
+            // Reverse Futility Pruning: if the static eval is high enough above beta,
+            // assume we can skip search
+            if depth < info.options.rfp_depth && (eval - depth * info.options.rfp_margin) >= beta {
+                // TODO: RFP improving margin
+                return eval - depth * info.options.rfp_margin;
+            }
             // TODO: nmp only when static eval >= beta
             if t.nmp_enabled && depth >= info.options.nmp_depth && self.has_non_pawns(self.player())
             {

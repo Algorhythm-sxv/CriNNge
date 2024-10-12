@@ -2,9 +2,8 @@ use std::fmt::Display;
 
 use crate::timeman::TimeOptions;
 
-#[cfg(feature="stats")]
+#[cfg(feature = "tuning")]
 use super::{INF, MAX_DEPTH};
-
 
 #[derive(Copy, Clone, Debug)]
 pub struct SearchOptions {
@@ -18,6 +17,8 @@ pub struct SearchOptions {
     pub nmp_depth: i32,
     pub nmp_r_const: i32,
     pub nmp_r_depth_divisor: i32,
+    pub rfp_depth: i32,
+    pub rfp_margin: i32,
 }
 
 impl SearchOptions {
@@ -43,6 +44,8 @@ impl Default for SearchOptions {
             nmp_depth: 1,
             nmp_r_const: 3,
             nmp_r_depth_divisor: 3,
+            rfp_depth: 16,
+            rfp_margin: 38,
         }
     }
 }
@@ -61,6 +64,8 @@ impl Display for SearchOptions {
         writeln!(f, "option name NmpDepth type spin default {} min 0 max {}", self.nmp_depth, MAX_DEPTH)?;
         writeln!(f, "option name NmpReductionConst type spin default {} min 0 max {}", self.nmp_r_const, MAX_DEPTH)?;
         writeln!(f, "option name NmpReductionDepthDivisor type spin default {} min 1 max {}", self.nmp_r_const, MAX_DEPTH)?;
+        writeln!(f, "option name RfpDepth type spin default {} min 1 max {}", self.rfp_depth, MAX_DEPTH)?;
+        writeln!(f, "option name RfpMargin type spin default {} min 1 max {}", self.rfp_margin, INF)?;
         }
         Ok(())
     }
