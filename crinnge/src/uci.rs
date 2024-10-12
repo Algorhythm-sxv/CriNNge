@@ -251,11 +251,11 @@ fn parse_setoption_command(
             };
             options.inc_percent = n;
         }
-        "nmpdepth" => {
+        "nmpmindepth" => {
             let Ok(n @ 1..=MAX_DEPTH) = value.parse::<i32>() else {
                 return Err(UciError::InvalidSetoptionCommand);
             };
-            options.nmp_depth = n;
+            options.nmp_min_depth = n;
         }
         "nmpreductionconst" => {
             let Ok(n @ 1..=MAX_DEPTH) = value.parse::<i32>() else {
@@ -268,6 +268,18 @@ fn parse_setoption_command(
                 return Err(UciError::InvalidSetoptionCommand);
             };
             options.nmp_r_depth_divisor = n;
+        }
+        "rfpmaxdepth" => {
+            let Ok(n @ 1..=MAX_DEPTH) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.rfp_max_depth = n;
+        }
+        "rfpmargin" => {
+            let Ok(n @ 1..=INF) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.rfp_margin = n;
         }
         _ => return Err(UciError::UnknownOption(name.to_string())),
     }

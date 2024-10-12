@@ -14,10 +14,10 @@ pub struct SearchOptions {
     pub hard_time_percent: i64,
     pub soft_time_percent: i64,
     pub inc_percent: i64,
-    pub nmp_depth: i32,
+    pub nmp_min_depth: i32,
     pub nmp_r_const: i32,
     pub nmp_r_depth_divisor: i32,
-    pub rfp_depth: i32,
+    pub rfp_max_depth: i32,
     pub rfp_margin: i32,
 }
 
@@ -41,10 +41,10 @@ impl Default for SearchOptions {
             hard_time_percent: 50,
             soft_time_percent: 5,
             inc_percent: 50,
-            nmp_depth: 1,
+            nmp_min_depth: 1,
             nmp_r_const: 3,
             nmp_r_depth_divisor: 3,
-            rfp_depth: 16,
+            rfp_max_depth: 16,
             rfp_margin: 38,
         }
     }
@@ -61,10 +61,10 @@ impl Display for SearchOptions {
         writeln!(f, "option name HardTimePercent type spin default {} min 1 max 100", self.hard_time_percent)?;
         writeln!(f, "option name SoftTimePercent type spin default {} min 1 max 100", self.soft_time_percent)?;
         writeln!(f, "option name IncPercent type spin default {} min 1 max 100", self.inc_percent)?;
-        writeln!(f, "option name NmpDepth type spin default {} min 0 max {}", self.nmp_depth, MAX_DEPTH)?;
+        writeln!(f, "option name NmpMinDepth type spin default {} min 0 max {}", self.nmp_depth, MAX_DEPTH)?;
         writeln!(f, "option name NmpReductionConst type spin default {} min 0 max {}", self.nmp_r_const, MAX_DEPTH)?;
         writeln!(f, "option name NmpReductionDepthDivisor type spin default {} min 1 max {}", self.nmp_r_const, MAX_DEPTH)?;
-        writeln!(f, "option name RfpDepth type spin default {} min 1 max {}", self.rfp_depth, MAX_DEPTH)?;
+        writeln!(f, "option name RfpMaxDepth type spin default {} min 1 max {}", self.rfp_depth, MAX_DEPTH)?;
         writeln!(f, "option name RfpMargin type spin default {} min 1 max {}", self.rfp_margin, INF)?;
         }
         Ok(())
