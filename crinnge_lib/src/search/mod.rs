@@ -377,7 +377,7 @@ impl Board {
                 let mut r = 0;
                 if !capture && mv.promo().is_none() {
                     // Late Move Reductions: moves ordered later are more likely to fail with less searching
-                    r += LMR[(depth as usize).min(64)][moves_made.min(63)] as i32;
+                    r += LMR[(depth as usize).min(63)][moves_made.min(63)] as i32;
                 }
 
                 let r_depth = depth - 1 - r;
