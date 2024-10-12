@@ -1,9 +1,10 @@
 use std::fmt::Display;
 
-use crate::{
-    search::{INF, MAX_DEPTH},
-    timeman::TimeOptions,
-};
+use crate::timeman::TimeOptions;
+
+#[cfg(feature="stats")]
+use super::{INF, MAX_DEPTH};
+
 
 #[derive(Copy, Clone, Debug)]
 pub struct SearchOptions {

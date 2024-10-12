@@ -4,6 +4,7 @@ pub mod options;
 use std::sync::atomic::Ordering;
 use std::thread;
 
+use crinnge_pregen::LMR;
 use info::SearchInfo;
 
 use crate::move_sorting::MoveSorter;
@@ -347,8 +348,27 @@ impl Board {
             let mut score = -INF;
 
             let search_full_depth_null_window = if moves_made > 1 {
-                // TODO: reduced searches
-                true
+                // reduced null-window search hoping to fail before the more expensive searches
+                let mut r = 0;
+                if !capture && mv.promo().is_none() {
+                    // Late Move Reductions: moves ordered later are more likely to fail with less searching
+                    r += LMR[(depth as usize).min(64)][moves_made.min(63)] as i32;
+                }
+
+                let r_depth = depth - 1 - r;
+                score = -new.negamax::<NonRoot, M>(
+                    &mut line,
+                    info,
+                    t,
+                    -alpha - 1,
+                    -alpha,
+                    r_depth,
+                    ply + 1,
+                );
+
+                // perform the full-depth null-window search if the reduced search beats alpha
+                // and was actually reduced
+                score > alpha && r > 0
             } else {
                 // first moves in non-PV nodes don't get reduced, and later moves in PV nodes that pass the reduced search
                 // get re-searched at full depth
