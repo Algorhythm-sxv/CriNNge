@@ -267,7 +267,6 @@ impl Board {
                 pv.clear();
                 return entry.score.get(ply);
             }
-            // TODO: use TT score as static eval when not pruned
 
             // use the best move saved in the TT for move ordering
             if entry.best_move != Move::NULL {
@@ -540,7 +539,6 @@ impl Board {
             {
                 info.tt_hits += 1;
             }
-            // TODO: pruning outside of PV, after PVS impl
             if !pv_node && entry.score_beats_bounds(alpha, beta, ply) {
                 pv.clear();
                 return entry.score.get(ply);
@@ -553,19 +551,26 @@ impl Board {
             }
         }
 
-        let mut static_eval = self.evaluate(t, ply);
+        let mut eval = self.evaluate(t, ply);
+
+        // use TT score as static eval if the bounds work
+        if let Some(entry) = tt_entry {
+            if entry.score_beats_bounds(eval, eval, ply) {
+                eval = entry.score.get(ply);
+            }
+        }
 
         // if the static eval is too good the opponent won't play into this position
-        if static_eval >= beta && !in_check {
+        if eval >= beta && !in_check {
             pv.clear();
             #[cfg(feature = "stats")]
             {
                 info.fail_highs += 1;
             }
-            return static_eval;
+            return eval;
         }
 
-        alpha = alpha.max(static_eval);
+        alpha = alpha.max(eval);
         let old_alpha = alpha;
 
         let mut line = PrincipalVariation::new();
@@ -574,7 +579,7 @@ impl Board {
         let mut move_sorter = MoveSorter::new(tt_move, &mut noisy, &mut quiet).noisy_only();
 
         let mut best_move = None;
-        let mut best_score = static_eval;
+        let mut best_score = eval;
         let mut moves_made = 0;
 
         while let Some((mv, _)) = move_sorter.next(self, t) {
@@ -630,6 +635,11 @@ impl Board {
         } else if best_score > old_alpha {
             ScoreType::Exact
         } else {
+            // no move improved alpha
+            #[cfg(feature = "stats")]
+            {
+                info.fail_lows += 1;
+            }
             ScoreType::UpperBound
         };
 
