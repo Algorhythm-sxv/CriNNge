@@ -199,7 +199,7 @@ impl Board {
         t: &mut ThreadData,
         mut alpha: i32,
         beta: i32,
-        depth: i32,
+        mut depth: i32,
         ply: usize,
     ) -> i32 {
         if depth <= 0 {
@@ -274,6 +274,17 @@ impl Board {
             }
         }
 
+        // Internal Iterative Reduction: if the position was missing in the TT or too shallow reduce the search depth
+        if !R::ROOT
+            && !pv_node
+            && depth >= info.options.iir_min_depth
+            && tt_entry.map_or(true, |e| {
+                e.depth as i32 <= depth - info.options.iir_tt_depth_margin
+            })
+        {
+            depth -= 1;
+        }
+
         let mut line = PrincipalVariation::new();
         let in_check = self.in_check();
 
@@ -300,12 +311,16 @@ impl Board {
         if !R::ROOT && !pv_node && !in_check {
             // Reverse Futility Pruning: if the static eval is high enough above beta,
             // assume we can skip search
-            if depth < info.options.rfp_max_depth && (eval - depth * info.options.rfp_margin) >= beta {
+            if depth < info.options.rfp_max_depth
+                && (eval - depth * info.options.rfp_margin) >= beta
+            {
                 // TODO: RFP improving margin
                 return eval - depth * info.options.rfp_margin;
             }
             // TODO: nmp only when static eval >= beta
-            if t.nmp_enabled && depth >= info.options.nmp_min_depth && self.has_non_pawns(self.player())
+            if t.nmp_enabled
+                && depth >= info.options.nmp_min_depth
+                && self.has_non_pawns(self.player())
             {
                 let c = info.options.nmp_r_const;
                 let l = depth / info.options.nmp_r_depth_divisor;

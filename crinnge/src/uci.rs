@@ -281,6 +281,18 @@ fn parse_setoption_command(
             };
             options.rfp_margin = n;
         }
+        "iirmindepth" => {
+            let Ok(n @ 1..=MAX_DEPTH) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.iir_min_depth = n;
+        }
+        "iirttdepthmargin" => {
+            let Ok(n @ 1..=MAX_DEPTH) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.iir_tt_depth_margin = n;
+        }
         _ => return Err(UciError::UnknownOption(name.to_string())),
     }
 

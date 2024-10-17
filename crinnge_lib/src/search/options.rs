@@ -2,9 +2,6 @@ use std::fmt::Display;
 
 use crate::timeman::TimeOptions;
 
-#[cfg(feature = "tuning")]
-use super::{INF, MAX_DEPTH};
-
 #[derive(Copy, Clone, Debug)]
 pub struct SearchOptions {
     pub threads: usize,
@@ -19,6 +16,8 @@ pub struct SearchOptions {
     pub nmp_r_depth_divisor: i32,
     pub rfp_max_depth: i32,
     pub rfp_margin: i32,
+    pub iir_min_depth: i32,
+    pub iir_tt_depth_margin: i32,
 }
 
 impl SearchOptions {
@@ -46,6 +45,8 @@ impl Default for SearchOptions {
             nmp_r_depth_divisor: 3,
             rfp_max_depth: 16,
             rfp_margin: 38,
+            iir_min_depth: 4,
+            iir_tt_depth_margin: 128 // high value effectively disables this feature
         }
     }
 }
@@ -56,6 +57,7 @@ impl Display for SearchOptions {
         writeln!(f, "option name Threads type spin default {} min 1 max 999", self.threads)?;
         writeln!(f, "option name Hash type spin default {} min 1 max 999", self.hash)?;
         #[cfg(feature = "tuning")] {
+        use super::{INF, MAX_DEPTH};
         writeln!(f, "option name AspWindowInit type spin default {} min 1 max {}", self.asp_window_init, INF)?;
         writeln!(f, "option name AspWindowScalePercent type spin default {} min 101 max 999", self.asp_window_scale_percent)?;
         writeln!(f, "option name HardTimePercent type spin default {} min 1 max 100", self.hard_time_percent)?;
@@ -66,6 +68,8 @@ impl Display for SearchOptions {
         writeln!(f, "option name NmpReductionDepthDivisor type spin default {} min 1 max {}", self.nmp_r_const, MAX_DEPTH)?;
         writeln!(f, "option name RfpMaxDepth type spin default {} min 1 max {}", self.rfp_depth, MAX_DEPTH)?;
         writeln!(f, "option name RfpMargin type spin default {} min 1 max {}", self.rfp_margin, INF)?;
+        writeln!(f, "option name IirMinDepth type spin default {} min 1 max {}", self.rfp_margin, MAX_DEPTH)?;
+        writeln!(f, "option name IirTtDepthMargin type spin default {} min 1 max {}", self.rfp_margin, MAX_DEPTH)?;
         }
         Ok(())
     }
