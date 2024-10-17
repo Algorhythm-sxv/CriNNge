@@ -300,12 +300,26 @@ impl Board {
         if !R::ROOT && !pv_node && !in_check {
             // Reverse Futility Pruning: if the static eval is high enough above beta,
             // assume we can skip search
-            if depth < info.options.rfp_max_depth && (eval - depth * info.options.rfp_margin) >= beta {
+            if depth < info.options.rfp_max_depth
+                && (eval - depth * info.options.rfp_margin) >= beta
+            {
                 // TODO: RFP improving margin
                 return eval - depth * info.options.rfp_margin;
             }
+
+            // Skip NMP when the TT suggests it's unlikely to succeed
+            let skip_nmp = if let Some(entry) = tt_entry {
+                entry.depth as i32 >= depth - 2
+                    && entry.score.get(ply) <= alpha
+                    && entry.info.score_type() == ScoreType::UpperBound
+            } else {
+                false
+            };
             // TODO: nmp only when static eval >= beta
-            if t.nmp_enabled && depth >= info.options.nmp_min_depth && self.has_non_pawns(self.player())
+            if t.nmp_enabled
+                && !skip_nmp
+                && depth >= info.options.nmp_min_depth
+                && self.has_non_pawns(self.player())
             {
                 let c = info.options.nmp_r_const;
                 let l = depth / info.options.nmp_r_depth_divisor;
