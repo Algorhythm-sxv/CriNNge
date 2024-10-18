@@ -46,7 +46,7 @@ impl Default for SearchOptions {
             rfp_max_depth: 16,
             rfp_margin: 38,
             iir_min_depth: 4,
-            iir_tt_depth_margin: 128 // high value effectively disables this feature
+            iir_tt_depth_margin: 4,
         }
     }
 }
