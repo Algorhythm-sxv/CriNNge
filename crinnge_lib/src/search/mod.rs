@@ -7,7 +7,7 @@ use std::thread;
 use crinnge_pregen::LMR;
 use info::SearchInfo;
 
-use crate::move_sorting::MoveSorter;
+use crate::move_sorting::{MoveGenStage, MoveSorter};
 use crate::moves::{Move, MoveList, PrincipalVariation};
 use crate::types::*;
 use crate::{board::Board, thread_data::ThreadData};
@@ -597,7 +597,12 @@ impl Board {
         let mut best_score = eval;
         let mut moves_made = 0;
 
-        while let Some((mv, _)) = move_sorter.next(self, t) {
+        while let Some((mv, stage)) = move_sorter.next(self, t) {
+            // SEE pruning: if this move seems to lose material skip the rest
+            if stage == MoveGenStage::BadNoisies {
+                break;
+            }
+
             let mut new = *self;
             if !new.make_move_nnue(mv, t, ply) {
                 continue;
