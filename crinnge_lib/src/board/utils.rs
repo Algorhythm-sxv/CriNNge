@@ -19,6 +19,21 @@ impl Board {
             | self.king_attacks(color)
     }
 
+    pub fn all_attacks_on(&self, target: Square, occupied: BitBoard) -> BitBoard {
+        let knights = self.knights[White] | self.knights[Black];
+        let bishops =
+            self.bishops[White] | self.bishops[Black] | self.queens[White] | self.queens[Black];
+        let rooks = self.rooks[White] | self.rooks[Black] | self.queens[White] | self.queens[Black];
+        let kings = self.kings[White] | self.kings[Black];
+
+        (self.pawn_attack(target, White) & self.pawns[Black])
+            | (self.pawn_attack(target, Black) & self.pawns[White])
+            | (lookup_knight_moves(target) & knights)
+            | (lookup_bishop_moves(target, occupied) & bishops)
+            | (lookup_rook_moves(target, occupied) & rooks)
+            | (lookup_king_moves(target) & kings)
+    }
+
     pub fn pawn_attacks(&self, color: Color) -> BitBoard {
         let pawns = self.pawns[color];
         match color {
@@ -153,6 +168,10 @@ impl Board {
         self.pawn_hash
     }
 
+    pub fn castles(&self) -> [[BitBoard; 2]; 2] {
+        self.castles
+    }
+
     pub fn in_check(&self) -> bool {
         (self.all_attacks(!self.player) & self.kings[self.player]).is_not_empty()
     }
@@ -196,10 +215,7 @@ impl Board {
     }
 
     pub fn has_non_pawns(&self, player: Color) -> bool {
-        (self.knights[player]
-            | self.bishops[player]
-            | self.rooks[player]
-            | self.queens[player])
+        (self.knights[player] | self.bishops[player] | self.rooks[player] | self.queens[player])
             .is_not_empty()
     }
 }

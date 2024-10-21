@@ -5,7 +5,7 @@ members = ["crinnge_bitboards", "crinnge_pregen", "crinnge_lib", "crinnge"]
 
 [profile.test]
 debug = true
-lto = true
+# lto = true
 
 [profile.release]
 lto = true

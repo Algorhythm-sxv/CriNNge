@@ -3,7 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::types::*;
+use crate::{board::Board, types::*};
 use crinnge_bitboards::*;
 
 const FLAGS_MASK: u16 = 0b1100_0000_0000_0000;
@@ -82,6 +82,32 @@ impl Move {
         };
 
         format!("{from}{to}{promo}")
+    }
+    pub fn from_pair<T: AsRef<str>>(board: &Board, pair: T) -> Self {
+        let pair = pair.as_ref();
+        let from = Square::from_coord(&pair[0..2]);
+        let mut to = Square::from_coord(&pair[2..4]);
+        let promo = match pair.chars().nth(4) {
+            Some('n') => Some(Knight),
+            Some('b') => Some(Bishop),
+            Some('r') => Some(Rook),
+            Some('q') => Some(Queen),
+            _ => None,
+        };
+
+        let piece = board.piece_on(from).unwrap_or(Pawn);
+        if piece == King {
+            // correct for castling
+            if to.file() > from.file() && to.file().abs_diff(from.file()) > 1 {
+                // kingside castling
+                to = board.castles()[board.player()][0].first_square()
+            } else if to.file() < from.file() && to.file().abs_diff(from.file()) > 1 {
+                // queenside castling
+                to = board.castles()[board.player()][1].first_square()
+            }
+        }
+
+        Self::new(from, to, promo)
     }
 }
 

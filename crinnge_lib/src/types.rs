@@ -73,6 +73,7 @@ impl<T, const N: usize> IndexMut<Piece> for [T; N] {
 }
 
 pub use Piece::*;
+pub const PIECES: [Piece; 6] = [Pawn, Knight, Bishop, Rook, Queen, King];
 
 use crate::search::INF;
 

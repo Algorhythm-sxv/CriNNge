@@ -79,11 +79,11 @@ impl Board {
         board.ep_mask = match parts.get(3)?.split_at(1) {
             (f @ ("a" | "b" | "c" | "d" | "e" | "f" | "g" | "h"), "3") => {
                 file = f.chars().next().unwrap() as u32 - 'a' as u32;
-                Square::from(3 * 8 + file).bitboard()
+                Square::from(2 * 8 + file).bitboard()
             }
             (f @ ("a" | "b" | "c" | "d" | "e" | "f" | "g" | "h"), "6") => {
                 file = f.chars().next().unwrap() as u32 - 'a' as u32;
-                Square::from(6 * 8 + file).bitboard()
+                Square::from(5 * 8 + file).bitboard()
             }
             ("-", _) => BitBoard::empty(),
             _ => return None,

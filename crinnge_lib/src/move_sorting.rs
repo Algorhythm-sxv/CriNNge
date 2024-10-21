@@ -11,12 +11,16 @@ const MVV_LVA: [[i16; 6]; 6] = [
     [55, 54, 53, 52, 51, 50], // Queen capture
     [0, 0, 0, 0, 0, 0],       // King capture (not possible)
 ];
+const BAD_NOISY: i16 = -10100;
+
+
 #[derive(PartialEq, Eq)]
 pub enum MoveGenStage {
     TTMove,
     GenerateMoves,
-    Noisies,
+    GoodNoisies,
     Quiets,
+    BadNoisies,
 }
 
 use MoveGenStage::*;
@@ -69,39 +73,67 @@ impl<'a> MoveSorter<'a> {
         }
 
         if self.stage == GenerateMoves {
-            self.stage = Noisies;
+            self.stage = GoodNoisies;
             board.generate_moves_into(self.noisies, self.quiets);
             self.score_noisies(board, t);
         }
 
-        if self.stage == Noisies {
+        if self.stage == GoodNoisies {
             loop {
                 let noisy = self.noisies.next(self.noisy_index);
                 self.noisy_index += 1;
-                if noisy.is_none() {
+                if let Some(noisy) = noisy {
+                    // don't repeat the TT move
+                    if Some(noisy.mv) == self.tt_move {
+                        continue;
+                    }
+                    // go to quiets once a bad noisy is discovered
+                    if noisy.score < 0 {
+                        // put this noisy back in the list
+                        self.noisy_index -= 1;
+                        if !self.noisy_only {
+                            self.stage = Quiets;
+                            self.score_quiets(board, t);
+                        }
+                        break;
+                    }
+
+                    return Some((noisy.mv, GoodNoisies));
+                } else {
                     if !self.noisy_only {
                         self.stage = Quiets;
                         self.score_quiets(board, t);
                     }
                     break;
-                } else if noisy.map(|e| e.mv) == self.tt_move {
-                    continue;
                 }
-                return Some((noisy.unwrap().mv, Noisies));
             }
         }
 
         if self.stage == Quiets {
-            // TODO: score quiets
             loop {
                 let quiet = self.quiets.next(self.quiet_index);
                 self.quiet_index += 1;
                 if quiet.is_none() {
+                    self.stage = BadNoisies;
                     break;
                 } else if quiet.map(|e| e.mv) == self.tt_move {
                     continue;
                 }
                 return Some((quiet.unwrap().mv, Quiets));
+            }
+        }
+
+        if self.stage == BadNoisies {
+            loop {
+                let noisy = self.noisies.get(self.noisy_index);
+                self.noisy_index += 1;
+                if noisy.is_none() {
+                    break;
+                } else if noisy.map(|e| e.mv) == self.tt_move {
+                    continue;
+                }
+
+                return Some((noisy.unwrap().mv, BadNoisies));
             }
         }
 
@@ -114,7 +146,9 @@ impl<'a> MoveSorter<'a> {
             let capture = board.piece_on(noisy.mv.to()).unwrap_or(Pawn); // promotions may not have a capture
             let mvv_lva = MVV_LVA[capture][piece];
 
-            noisy.score = mvv_lva;
+            let bad = !board.see_beats_threshold(noisy.mv, 0);
+
+            noisy.score = BAD_NOISY * bad as i16 + mvv_lva;
         }
     }
 
