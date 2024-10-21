@@ -13,7 +13,6 @@ const MVV_LVA: [[i16; 6]; 6] = [
 ];
 const BAD_NOISY: i16 = -10100;
 
-
 #[derive(PartialEq, Eq)]
 pub enum MoveGenStage {
     TTMove,
@@ -94,6 +93,8 @@ impl<'a> MoveSorter<'a> {
                         if !self.noisy_only {
                             self.stage = Quiets;
                             self.score_quiets(board, t);
+                        } else {
+                            self.stage = BadNoisies;
                         }
                         break;
                     }
@@ -103,6 +104,8 @@ impl<'a> MoveSorter<'a> {
                     if !self.noisy_only {
                         self.stage = Quiets;
                         self.score_quiets(board, t);
+                    } else {
+                        self.stage = BadNoisies;
                     }
                     break;
                 }
