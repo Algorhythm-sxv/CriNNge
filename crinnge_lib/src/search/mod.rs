@@ -384,7 +384,9 @@ impl Board {
                         };
                     if !self.see_beats_threshold(mv, threshold as i16) {
                         // TODO: count this in moves_made?
-                        // TODO: add moves to tried lists even though it may be illegal?
+                        if !capture {
+                            quiets_tried.push(mv);
+                        }
                         continue;
                     }
                 }
