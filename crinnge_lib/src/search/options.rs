@@ -18,6 +18,9 @@ pub struct SearchOptions {
     pub rfp_margin: i32,
     pub iir_min_depth: i32,
     pub iir_tt_depth_margin: i32,
+    pub see_pruning_max_depth: i32,
+    pub see_capture_margin: i32,
+    pub see_quiet_margin: i32,
 }
 
 impl SearchOptions {
@@ -46,7 +49,10 @@ impl Default for SearchOptions {
             rfp_max_depth: 16,
             rfp_margin: 38,
             iir_min_depth: 4,
-            iir_tt_depth_margin: 128 // high value effectively disables this feature
+            iir_tt_depth_margin: 128, // high value effectively disables this feature
+            see_pruning_max_depth: 10,
+            see_capture_margin: -54,
+            see_quiet_margin: -45,
         }
     }
 }
@@ -63,13 +69,16 @@ impl Display for SearchOptions {
         writeln!(f, "option name HardTimePercent type spin default {} min 1 max 100", self.hard_time_percent)?;
         writeln!(f, "option name SoftTimePercent type spin default {} min 1 max 100", self.soft_time_percent)?;
         writeln!(f, "option name IncPercent type spin default {} min 1 max 100", self.inc_percent)?;
-        writeln!(f, "option name NmpMinDepth type spin default {} min 0 max {}", self.nmp_depth, MAX_DEPTH)?;
+        writeln!(f, "option name NmpMinDepth type spin default {} min 0 max {}", self.nmp_min_depth, MAX_DEPTH)?;
         writeln!(f, "option name NmpReductionConst type spin default {} min 0 max {}", self.nmp_r_const, MAX_DEPTH)?;
         writeln!(f, "option name NmpReductionDepthDivisor type spin default {} min 1 max {}", self.nmp_r_const, MAX_DEPTH)?;
-        writeln!(f, "option name RfpMaxDepth type spin default {} min 1 max {}", self.rfp_depth, MAX_DEPTH)?;
+        writeln!(f, "option name RfpMaxDepth type spin default {} min 1 max {}", self.rfp_max_depth, MAX_DEPTH)?;
         writeln!(f, "option name RfpMargin type spin default {} min 1 max {}", self.rfp_margin, INF)?;
-        writeln!(f, "option name IirMinDepth type spin default {} min 1 max {}", self.rfp_margin, MAX_DEPTH)?;
-        writeln!(f, "option name IirTtDepthMargin type spin default {} min 1 max {}", self.rfp_margin, MAX_DEPTH)?;
+        writeln!(f, "option name IirMinDepth type spin default {} min 1 max {}", self.iir_min_depth, MAX_DEPTH)?;
+        writeln!(f, "option name IirTtDepthMargin type spin default {} min 1 max {}", self.iir_tt_depth_margin, MAX_DEPTH)?;
+        writeln!(f, "option name SeePruningMaxDepth type spin default {} min 1 max {}", self.see_pruning_max_depth, MAX_DEPTH)?;
+        writeln!(f, "option name SeeCaptureMargin type spin default {} min -100 max 100", self.see_capture_margin)?;
+        writeln!(f, "option name SeeQuietMargin type spin default {} min -100 max 100", self.see_quiet_margin)?;
         }
         Ok(())
     }

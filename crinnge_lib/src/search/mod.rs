@@ -371,13 +371,31 @@ impl Board {
 
         t.search_history.push(self.hash());
         while let Some((mv, _)) = move_sorter.next(self, t) {
+            let capture = self.is_capture(mv);
+            // Move-based pruning techniques, used only after the first move is searched
+            if moves_made > 0 {
+                // SEE pruning: if this move loses too much material at low depth then skip it
+                if !R::ROOT && !pv_node && depth < info.options.see_pruning_max_depth {
+                    let threshold = depth
+                        * if capture {
+                            info.options.see_capture_margin
+                        } else {
+                            info.options.see_quiet_margin
+                        };
+                    if !self.see_beats_threshold(mv, threshold as i16) {
+                        // TODO: count this in moves_made?
+                        // TODO: add moves to tried lists even though it may be illegal?
+                        continue;
+                    }
+                }
+            }
+
             let mut new = *self;
 
             if !new.make_move_nnue(mv, t, ply) {
                 continue;
             }
             moves_made += 1;
-            let capture = self.is_capture(mv);
             if !capture {
                 quiets_tried.push(mv);
             }

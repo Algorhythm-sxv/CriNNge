@@ -293,6 +293,24 @@ fn parse_setoption_command(
             };
             options.iir_tt_depth_margin = n;
         }
+        "seepruningmaxdepth" => {
+            let Ok(n @ 1..=MAX_DEPTH) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.see_pruning_max_depth = n;
+        }
+        "seecapturemargin" => {
+            let Ok(n @ -100..=100) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.see_capture_margin = n;
+        }
+        "seequietmargin" => {
+            let Ok(n @ -100..=100) = value.parse::<i32>() else {
+                return Err(UciError::InvalidSetoptionCommand);
+            };
+            options.see_quiet_margin = n;
+        }
         _ => return Err(UciError::UnknownOption(name.to_string())),
     }
 
