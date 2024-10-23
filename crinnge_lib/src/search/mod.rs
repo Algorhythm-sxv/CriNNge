@@ -383,8 +383,8 @@ impl Board {
                             info.options.see_quiet_margin
                         };
                     if !self.see_beats_threshold(mv, threshold as i16) {
-                        // TODO: count this in moves_made?
                         // TODO: add moves to tried lists even though it may be illegal?
+                        moves_made += 1;
                         continue;
                     }
                 }
