@@ -366,14 +366,14 @@ impl Board {
         let old_alpha = alpha;
         let mut best_score = -INF;
         let mut best_move = None;
-        let mut moves_made = 0;
+        let mut moves_searched = 0;
         let mut quiets_tried = MoveList::new();
 
         t.search_history.push(self.hash());
         while let Some((mv, _)) = move_sorter.next(self, t) {
             let capture = self.is_capture(mv);
             // Move-based pruning techniques, used only after the first move is searched
-            if moves_made > 0 {
+            if moves_searched > 0 {
                 // SEE pruning: if this move loses too much material at low depth then skip it
                 if !R::ROOT && !pv_node && depth < info.options.see_pruning_max_depth {
                     let threshold = depth
@@ -395,7 +395,6 @@ impl Board {
             if !new.make_move_nnue(mv, t, ply) {
                 continue;
             }
-            moves_made += 1;
             if !capture {
                 quiets_tried.push(mv);
             }
@@ -404,12 +403,12 @@ impl Board {
 
             let mut score = -INF;
 
-            let search_full_depth_null_window = if moves_made > 1 {
+            let search_full_depth_null_window = if moves_searched > 0 {
                 // reduced null-window search hoping to fail before the more expensive searches
                 let mut r = 0;
                 if !capture && mv.promo().is_none() {
                     // Late Move Reductions: moves ordered later are more likely to fail with less searching
-                    r += LMR[(depth as usize).min(63)][moves_made.min(63)] as i32;
+                    r += LMR[(depth as usize).min(63)][moves_searched.min(63)] as i32;
                 }
 
                 let r_depth = depth - 1 - r;
@@ -429,7 +428,7 @@ impl Board {
             } else {
                 // first moves in non-PV nodes don't get reduced, and later moves in PV nodes that pass the reduced search
                 // get re-searched at full depth
-                !pv_node || moves_made > 1
+                !pv_node || moves_searched > 0
             };
 
             // full depth null window search on later PV moves or non-PV moves that pass the reduced search
@@ -452,7 +451,7 @@ impl Board {
             }
 
             // full search on PV first moves and later moves that improve alpha
-            if pv_node && (moves_made == 1 || (score > alpha && score < beta)) {
+            if pv_node && (moves_searched == 0 || (score > alpha && score < beta)) {
                 score = -new.negamax::<NonRoot, M>(
                     &mut line,
                     info,
@@ -469,6 +468,7 @@ impl Board {
                 pv.clear();
                 return 0;
             }
+            moves_searched += 1;
 
             if score > best_score {
                 best_score = score;
@@ -488,7 +488,7 @@ impl Board {
         }
         t.search_history.pop();
 
-        if moves_made == 0 {
+        if moves_searched == 0 {
             // no legal moves, checkmate or stalemate
             pv.clear();
             if in_check {
